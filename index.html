@@ -1,0 +1,2992 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Phạm Nhật - Dịch Vụ Game Roblox & Dragon Adventures</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Thư viện Supabase JS v2 chính thức -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Lớp Canvas Rồng Fulong bay phía trước giao diện nhưng không cản trở thao tác bấm nút */
+    #fulong-mascot-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 45;
+    }
+
+    /* Toàn bộ giao diện chính nằm dưới lớp rồng bay (z-index: 45) và dưới thanh điều hướng */
+    main, footer {
+      position: relative;
+      z-index: 10;
+    }
+    header {
+      position: sticky;
+      z-index: 46;
+    }
+    .modal-layer {
+      z-index: 50;
+    }
+
+    /* Khung giá VIP theo từng cấp bậc */
+    .vip-price-box {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(236, 72, 153, 0.14));
+      border: 1px solid rgba(192, 132, 252, 0.35);
+    }
+    .vip-price-box.rank-daide {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.22), rgba(245, 158, 11, 0.22));
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+    }
+
+    /* Hiệu ứng Thăng Hạng Rồng Ngậm Hạng Cũ & Hạng Mới Rơi Từ Trời Xuống */
+    @keyframes dragonSnatchFlight {
+      0% { transform: translateX(-120vw) translateY(20px) scale(0.9); opacity: 0; }
+      15% { opacity: 1; }
+      45% { transform: translateX(-15px) translateY(-5px) scale(1.05); }
+      55% { transform: translateX(0px) translateY(0px) scale(1.08); }
+      100% { transform: translateX(120vw) translateY(-40px) scale(0.95); opacity: 0; }
+    }
+
+    @keyframes oldBadgeSnatched {
+      0% { transform: translateX(0) translateY(0) scale(1) rotate(0deg); opacity: 1; }
+      48% { transform: translateX(0) translateY(0) scale(1) rotate(0deg); opacity: 1; }
+      55% { transform: translateX(10px) translateY(-6px) scale(0.85) rotate(12deg); opacity: 1; }
+      100% { transform: translateX(120vw) translateY(-46px) scale(0.6) rotate(25deg); opacity: 0; }
+    }
+
+    @keyframes newBadgeSkyDrop {
+      0%, 52% { transform: translateY(-320px) scale(0.4); opacity: 0; }
+      72% { transform: translateY(14px) scale(1.25); opacity: 1; }
+      84% { transform: translateY(-8px) scale(0.95); opacity: 1; }
+      100% { transform: translateY(0) scale(1.1); opacity: 1; }
+    }
+
+    @keyframes rankCongratsFadeIn {
+      0%, 70% { opacity: 0; transform: translateY(15px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-dragon-snatch { animation: dragonSnatchFlight 3.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+    .anim-old-snatched { animation: oldBadgeSnatched 3.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+    .anim-new-skydrop { animation: newBadgeSkyDrop 3.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .anim-rank-congrats { animation: rankCongratsFadeIn 3.4s ease-out forwards; }
+
+    /* Thanh cuộn tinh gọn */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f0822; }
+    ::-webkit-scrollbar-thumb { background: #4c1d95; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-[#090514] text-slate-100 antialiased selection:bg-purple-500 selection:text-white">
+
+  <!-- ========================================================= -->
+  <!-- LỚP CANVAS RỒNG THIÊN FULONG BAY LƯỢN LINH ĐỘNG           -->
+  <!-- ========================================================= -->
+  <canvas id="fulong-mascot-canvas" aria-hidden="true"></canvas>
+
+  <!-- ========================================================= -->
+  <!-- THANH ĐIỀU HƯỚNG (HEADER)                                 -->
+  <!-- ========================================================= -->
+  <header class="top-0 bg-[#0c061d]/90 backdrop-blur-md border-b border-purple-900/40">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <!-- Logo Con Rồng -->
+      <a href="#top" class="flex items-center gap-2.5 shrink-0 group">
+        <div class="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-b from-pink-500 via-fuchsia-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/35 group-hover:scale-105 transition-transform">
+          <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9.8 9.2L6.6 7.3C6.1 7 5.5 7.2 5.2 7.7L3.1 11.1C2.8 11.6 3.1 12.2 3.7 12.2H6.5L5.4 13.5C5 14 5.3 14.7 6 14.7H10.4C10 13.1 9.8 11.2 9.8 9.2Z"/>
+            <path d="M16.2 4.5H12.3C11.7 4.5 11.4 5.2 11.8 5.6L12.7 6.5L11.9 7.2C11.5 7.6 11.8 8.3 12.4 8.3H13.4C13.4 10.6 14.4 12.2 16 13.2C17.2 13.9 17.6 14.6 17.5 15.3C17.4 16 16.6 16.4 15.3 16.4H4.5C3.7 16.4 3 17 3 17.8C3 18.6 3.7 19.2 4.5 19.2H15.8C18.8 19.2 21 17.3 21 14.8C21 12.9 19.8 11.5 18 10.5C16.8 9.8 16.3 9 16.3 8H17.6C18.8 8 19.6 7 19.2 5.9C18.8 5 17.6 4.5 16.2 4.5ZM15.8 6.8C15.4 6.8 15 6.5 15 6.1C15 5.8 15.4 5.5 15.8 5.5C16.2 5.5 16.6 5.8 16.6 6.1C16.6 6.5 16.2 6.8 15.8 6.8Z"/>
+          </svg>
+        </div>
+        <div class="leading-tight">
+          <span class="block font-black text-sm sm:text-base tracking-wide bg-gradient-to-r from-white via-purple-200 to-cyan-300 bg-clip-text text-transparent">
+            SHOP PHẠM NHẬT
+          </span>
+          <span class="hidden sm:block text-[11px] text-purple-400 font-medium">Roblox &amp; Dragon Adventures</span>
+        </div>
+      </a>
+
+      <!-- Menu Desktop -->
+      <nav class="hidden lg:flex items-center gap-5 text-sm font-medium text-slate-300">
+        <a href="#services" class="hover:text-white transition">Cửa Hàng</a>
+        <button onclick="UIHelperModule.openTopupModal('qr')" class="hover:text-white transition">Nạp Tiền</button>
+        <button onclick="OrderModule.openOrdersModal()" class="hover:text-white transition">Đơn Hàng</button>
+        <button onclick="UIHelperModule.openRankModal()" class="hover:text-amber-300 text-amber-400/90 transition flex items-center gap-1">
+          <span>👑 Cấp Bậc VIP</span>
+        </button>
+        <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="text-sky-400 hover:text-sky-300 transition flex items-center gap-1 font-semibold">
+          <span>💬 Hỗ Trợ Zalo</span>
+        </a>
+        <button id="nav-admin-btn" onclick="AdminModule.openAdminModal()" class="hidden px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold hover:bg-amber-500/30 transition">
+          ⚡ Admin Panel
+        </button>
+      </nav>
+
+      <!-- Khu vực Nút Bật/Tắt Fulong, Giỏ Hàng & Tài Khoản -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Nút Bật/Tắt Rồng Fulong -->
+        <button id="fulong-toggle-btn" onclick="FulongMascotModule.toggle()" title="Bật/Tắt rồng Fulong bay lượn" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-red-950/60 hover:bg-red-900/70 border border-amber-500/40 text-amber-300 text-xs font-bold transition">
+          <span>🐉</span>
+          <span id="fulong-toggle-label" class="hidden sm:inline">Fulong: Bật</span>
+        </button>
+
+        <!-- Giỏ Hàng -->
+        <button onclick="CartModule.openCartModal()" class="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#180e36] hover:bg-[#22144b] border border-purple-700/40 text-sm font-semibold transition">
+          <svg class="w-4 h-4 text-purple-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span id="cart-badge" class="px-1.5 py-0.5 text-xs font-extrabold rounded-full bg-fuchsia-600 text-white">0</span>
+        </button>
+
+        <!-- Trạng thái chưa đăng nhập -->
+        <div id="auth-guest-box" class="flex items-center gap-1.5">
+          <button onclick="AuthModule.openAuthModal('login')" class="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-600/30 transition">
+            Đăng Nhập
+          </button>
+        </div>
+
+        <!-- Trạng thái đã đăng nhập -->
+        <div id="auth-user-box" class="hidden items-center gap-2 bg-[#160d30] border border-purple-700/40 rounded-xl px-2.5 py-1.5">
+          <div class="text-right leading-tight">
+            <div class="flex items-center justify-end gap-1.5">
+              <span id="header-user-name" class="text-xs font-bold text-white max-w-[95px] truncate">Khách</span>
+              <span id="header-user-rank" class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-slate-700 text-slate-200">Đồng</span>
+            </div>
+            <div id="header-user-balance" class="text-xs font-extrabold text-emerald-400">0đ</div>
+          </div>
+          <button onclick="AuthModule.logout()" title="Đăng xuất" class="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </button>
+        </div>
+
+        <button onclick="UIHelperModule.toggleMobileMenu()" class="lg:hidden p-2 rounded-xl bg-[#180e36] border border-purple-700/40 text-purple-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Menu Mobile xổ xuống -->
+    <div id="mobile-menu" class="hidden lg:hidden bg-[#110826] border-b border-purple-800/50 px-4 py-3 space-y-2 text-sm">
+      <a href="#services" onclick="UIHelperModule.toggleMobileMenu()" class="block py-2 px-3 rounded-xl hover:bg-purple-900/30 font-medium">🐉 Danh Mục Dịch Vụ</a>
+      <button onclick="UIHelperModule.toggleMobileMenu(); UIHelperModule.openTopupModal('qr')" class="w-full text-left py-2 px-3 rounded-xl hover:bg-purple-900/30 font-medium">💳 Nạp Số Dư (QR / Thẻ Cào)</button>
+      <button onclick="UIHelperModule.toggleMobileMenu(); OrderModule.openOrdersModal()" class="w-full text-left py-2 px-3 rounded-xl hover:bg-purple-900/30 font-medium">📦 Đơn Hàng &amp; Chat Hỗ Trợ</button>
+      <button onclick="UIHelperModule.toggleMobileMenu(); UIHelperModule.openRankModal()" class="w-full text-left py-2 px-3 rounded-xl hover:bg-purple-900/30 text-amber-400 font-semibold">👑 Bảng Cấp Bậc VIP (Giảm tới 6%)</button>
+      <button onclick="FulongMascotModule.toggle()" class="w-full text-left py-2 px-3 rounded-xl hover:bg-purple-900/30 text-amber-300 font-semibold">🐉 Bật / Tắt Rồng Fulong Bay</button>
+      <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="block py-2 px-3 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-300 font-bold">💬 Hỗ Trợ Zalo: 0395033213</a>
+      <button id="mobile-admin-btn" onclick="UIHelperModule.toggleMobileMenu(); AdminModule.openAdminModal()" class="hidden w-full text-left py-2 px-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold">
+        ⚡ Mở Bảng Điều Khiển Admin
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- NỘI DUNG CHÍNH (MAIN)                                     -->
+  <!-- ========================================================= -->
+  <main id="top" class="max-w-7xl mx-auto px-3 sm:px-6 py-6 sm:py-10 space-y-10">
+
+    <!-- HERO BANNER -->
+    <section class="relative rounded-3xl bg-gradient-to-br from-[#170c36] via-[#12082b] to-[#1e0f45] border border-purple-700/35 p-6 sm:p-10 shadow-2xl overflow-hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div class="lg:col-span-7 space-y-5">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-900/50 border border-purple-500/30 text-xs font-bold text-purple-200 tracking-wide">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            KHUYẾN MÃI ĐẶC BIỆT • GIAO DỊCH TỰ ĐỘNG &amp; AN TOÀN 100%
+          </div>
+
+          <h1 class="text-3xl sm:text-5xl font-black leading-tight text-white">
+            Thế Giới Dịch Vụ <span class="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Roblox &amp; Dragon Adventures</span>
+          </h1>
+
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+            Chào mừng đến với <strong class="text-white">Shop Phạm Nhật</strong>! Chuyên cung cấp Rồng Hiếm đột biến, Coin Game, Robux giá siêu ưu đãi, Potion &amp; vật phẩm hiếm. Nâng hạng thành viên tự động chiết khấu lên tới <strong class="text-amber-400">6%</strong> trọn đời!
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <a href="#services" class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition flex items-center gap-2">
+              <span>🔥 Khám Phá Ngay</span>
+            </a>
+            <button onclick="UIHelperModule.openTopupModal('qr')" class="px-6 py-3.5 rounded-2xl bg-[#22134a] hover:bg-[#2c195e] border border-purple-500/40 text-purple-100 font-bold text-sm transition flex items-center gap-2">
+              <span>💳 Nạp Số Dư Nhanh</span>
+            </button>
+            <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="px-5 py-3.5 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 font-bold text-sm transition flex items-center gap-2">
+              <span>🎧 Zalo Chủ Shop: 0395033213</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Thẻ thông tin Chủ Shop & Tỷ giá -->
+        <div class="lg:col-span-5">
+          <div class="rounded-2xl bg-[#110829]/90 border border-purple-600/30 p-5 space-y-4 shadow-xl">
+            <div class="flex items-center gap-3.5">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-pink-500 flex items-center justify-center font-black text-lg text-slate-950 shadow-md">
+                PN
+              </div>
+              <div>
+                <span class="text-[11px] font-extrabold tracking-wider text-purple-400 uppercase">CHỦ SHOP XÁC THỰC</span>
+                <h3 class="text-lg font-extrabold text-white">Phạm Minh Nhật</h3>
+                <p class="text-xs text-emerald-400 font-semibold">📞 Zalo / Momo: 0395033213</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl bg-[#1a0e3d] border border-purple-700/30 p-3 text-center">
+                <div class="text-xs text-slate-400">Tỷ giá Coin</div>
+                <div id="hero-coin-rate" class="text-sm sm:text-base font-black text-amber-400 mt-0.5">10k = 100.000</div>
+              </div>
+              <div class="rounded-xl bg-[#1a0e3d] border border-purple-700/30 p-3 text-center">
+                <div class="text-xs text-slate-400">Tỷ giá Robux</div>
+                <div id="hero-robux-rate" class="text-sm sm:text-base font-black text-cyan-400 mt-0.5">10k = 80 R$</div>
+              </div>
+            </div>
+
+            <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-2.5 text-xs text-emerald-300 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <span>Hỗ trợ giao dịch trực tiếp &amp; Chat riêng từng đơn hàng</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- KHU VỰC DANH MỤC & DỊCH VỤ                                -->
+    <!-- ========================================================= -->
+    <section id="services" class="space-y-6">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button onclick="CatalogModule.setCategory('all')" data-cat="all" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-purple-600 text-white shadow-md shadow-purple-600/30 transition flex items-center gap-2">
+          <span>🎛️ Tất Cả Dịch Vụ</span>
+        </button>
+        <button onclick="CatalogModule.setCategory('dragon')" data-cat="dragon" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
+          <span>🐉 Rồng Hiếm</span>
+        </button>
+        <button onclick="CatalogModule.setCategory('coin')" data-cat="coin" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="#F59E0B"/>
+            <circle cx="12" cy="12" r="7.5" fill="#FBBF24" stroke="#FEF08A" stroke-width="1.2"/>
+            <path d="M12 7.5v9M9.5 10c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" stroke="#92400E" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span>Quy Đổi Coin</span>
+        </button>
+        <button onclick="CatalogModule.setCategory('robux')" data-cat="robux" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2ZM12 4.3L5.34 8.15V15.85L12 19.7L18.66 15.85V8.15L12 4.3ZM9.5 9.5H14.5V14.5H9.5V9.5Z"/>
+          </svg>
+          <span>Quy Đổi Robux</span>
+        </button>
+        <button onclick="CatalogModule.setCategory('pot')" data-cat="pot" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
+          <span>🧪 Pot &amp; Vật Phẩm</span>
+        </button>
+      </div>
+
+      <!-- Thanh tìm kiếm & lọc giá -->
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <div class="sm:col-span-6 relative">
+          <input id="search-input" oninput="CatalogModule.renderProducts()" type="text" placeholder="Tìm tên rồng, pot, dịch vụ..." class="w-full bg-[#150c30] border border-purple-700/40 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-purple-400" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"/>
+          </svg>
+        </div>
+        <div class="sm:col-span-3">
+          <select id="price-range-filter" onchange="CatalogModule.renderProducts()" class="w-full bg-[#150c30] border border-purple-700/40 rounded-2xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-400">
+            <option value="all">Mọi mức giá</option>
+            <option value="under100">Dưới 100.000đ</option>
+            <option value="100to500">100.000đ - 500.000đ</option>
+            <option value="over500">Trên 500.000đ</option>
+          </select>
+        </div>
+        <div class="sm:col-span-3">
+          <select id="sort-filter" onchange="CatalogModule.renderProducts()" class="w-full bg-[#150c30] border border-purple-700/40 rounded-2xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-purple-400">
+            <option value="default">Sắp xếp: Mới nhất</option>
+            <option value="price-asc">Giá: Thấp đến Cao</option>
+            <option value="price-desc">Giá: Cao đến Thấp</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng quy đổi Coin / Robux động -->
+      <div id="dynamic-exchange-panel" class="hidden rounded-3xl bg-gradient-to-br from-[#190e3c] to-[#110829] border border-purple-500/40 p-5 sm:p-7 shadow-2xl space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-purple-800/50 pb-4">
+          <div class="flex items-center gap-3">
+            <div id="exchange-icon-box" class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-xl"></div>
+            <div>
+              <h3 id="exchange-title" class="text-lg sm:text-xl font-black text-white">Quy Đổi Coin Dragon Adventures</h3>
+              <p id="exchange-subtitle" class="text-xs text-purple-300">Tỷ giá hiện tại: 10.000đ = 100.000 Coin</p>
+            </div>
+          </div>
+          <span id="exchange-vip-note" class="text-xs font-bold px-3 py-1 rounded-full bg-purple-900/60 border border-purple-500/30 text-purple-200">
+            Ưu đãi VIP tự động áp dụng
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+          <div class="space-y-2">
+            <label for="vnd-input" class="block text-xs sm:text-sm font-semibold text-slate-300">Nhập số tiền VND</label>
+            <div class="relative">
+              <input
+                type="text"
+                inputmode="numeric"
+                id="vnd-input"
+                value="50.000"
+                oninput="CatalogModule.handleExchangeInput()"
+                placeholder="Ví dụ: 100.000"
+                class="w-full bg-[#0d0622] border border-purple-500/50 rounded-2xl px-4 py-3.5 text-lg font-black text-white focus:outline-none focus:border-purple-400"
+              />
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-purple-300 bg-purple-900/50 px-2.5 py-1 rounded-lg">VNĐ</span>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label id="exchange-output-label" class="block text-xs sm:text-sm font-semibold text-slate-300">Số Coin nhận được</label>
+            <div class="w-full bg-[#0d0622] border border-emerald-500/40 rounded-2xl px-4 py-3.5 text-lg font-black text-emerald-400 flex items-center justify-between">
+              <span id="exchange-output-value">500.000</span>
+              <span id="exchange-unit-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300">COIN</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="exchange-quick-presets" class="flex flex-wrap gap-2"></div>
+
+        <div class="pt-3 border-t border-purple-800/40 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs text-slate-400 block">Thanh toán dự kiến:</span>
+            <div id="exchange-final-price-box" class="flex items-center gap-2 mt-0.5">
+              <span id="exchange-final-price" class="text-xl font-black text-white">50.000đ</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button onclick="CatalogModule.addExchangeToCart(false)" class="px-4 py-3 rounded-2xl bg-[#24144f] hover:bg-[#301b69] border border-purple-500/40 text-white font-bold text-xs sm:text-sm transition">
+              🛒 Thêm Giỏ
+            </button>
+            <button onclick="CatalogModule.addExchangeToCart(true)" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-purple-600/30 transition">
+              ⚡ Đặt Mua Ngay
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tiêu đề danh sách sản phẩm -->
+      <div class="flex items-center justify-between pt-2">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🐉</span>
+          <h2 class="text-lg sm:text-2xl font-black text-white">Rồng Hiếm &amp; Vật Phẩm Đang Bán</h2>
+        </div>
+        <span id="product-count-badge" class="px-3 py-1 rounded-full bg-purple-900/50 border border-purple-600/40 text-xs font-bold text-purple-200">
+          0 sản phẩm
+        </span>
+      </div>
+
+      <!-- Lưới sản phẩm -->
+      <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+    </section>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- FOOTER                                                    -->
+  <!-- ========================================================= -->
+  <footer class="border-t border-purple-900/40 bg-[#070310] py-8 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+      <div>
+        <strong class="text-white">SHOP PHẠM NHẬT</strong> — Chuyên Dịch Vụ Game Roblox &amp; Dragon Adventures Uy Tín.
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Chủ shop: <strong class="text-purple-300">Phạm Minh Nhật</strong></span>
+        <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="text-sky-400 font-bold hover:underline">Zalo / Momo: 0395033213</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 1: ĐĂNG NHẬP / ĐĂNG KÝ                              -->
+  <!-- ========================================================= -->
+  <div id="auth-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#140b2e] border border-purple-600/40 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 id="auth-modal-title" class="text-xl font-black text-white">Đăng Nhập Tài Khoản</h3>
+        <button onclick="UIHelperModule.closeModal('auth-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-[#0c061f] p-1 rounded-2xl">
+        <button id="tab-login-btn" onclick="AuthModule.switchAuthTab('login')" class="py-2 rounded-xl text-xs font-bold bg-purple-600 text-white">Đăng Nhập</button>
+        <button id="tab-register-btn" onclick="AuthModule.switchAuthTab('register')" class="py-2 rounded-xl text-xs font-bold text-slate-400">Đăng Ký Mới</button>
+      </div>
+
+      <form id="auth-form" onsubmit="AuthModule.handleSubmit(event)" class="space-y-4">
+        <div id="register-name-group" class="hidden space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Tên hiển thị của bạn</label>
+          <input id="auth-name-input" type="text" placeholder="Ví dụ: Nguyễn Văn A" class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Email đăng nhập</label>
+          <input id="auth-email-input" type="email" required placeholder="Nhập địa chỉ email của bạn..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Mật khẩu (tối thiểu 6 ký tự)</label>
+          <input id="auth-pass-input" type="password" minlength="6" required placeholder="Nhập mật khẩu..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400" />
+        </div>
+        <button type="submit" id="auth-submit-btn" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-sm shadow-lg">
+          Đăng Nhập Ngay
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 2: GIỎ HÀNG & THANH TOÁN                            -->
+  <!-- ========================================================= -->
+  <div id="cart-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#140b2e] border border-purple-600/40 rounded-3xl w-full max-w-lg p-6 space-y-5 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between shrink-0">
+        <h3 class="text-xl font-black text-white">🛒 Giỏ Hàng Của Bạn</h3>
+        <button onclick="UIHelperModule.closeModal('cart-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+
+      <div id="cart-items-list" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+
+      <div class="border-t border-purple-800/50 pt-4 space-y-3 shrink-0">
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-300">Tên nhân vật Roblox / Ghi chú giao dịch <span class="text-rose-400">*</span></label>
+          <input id="checkout-roblox-user" type="text" placeholder="Nhập chính xác Username Roblox của bạn..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-purple-400" />
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-400">Chiết khấu hạng VIP (<span id="cart-vip-percent">0%</span>):</span>
+          <span id="cart-discount-amount" class="font-bold text-amber-400">-0đ</span>
+        </div>
+        <div class="flex items-center justify-between text-base font-black">
+          <span class="text-white">Tổng thanh toán:</span>
+          <span id="cart-total-price" class="text-xl text-emerald-400">0đ</span>
+        </div>
+        <button id="checkout-submit-btn" onclick="CartModule.checkout()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm shadow-lg">
+          ✅ Xác Nhận Thanh Toán Bằng Số Dư
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 3: NẠP TIỀN (QR CHUYỂN KHOẢN & THẺ CÀO)             -->
+  <!-- ========================================================= -->
+  <div id="topup-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#140b2e] border border-purple-600/40 rounded-3xl w-full max-w-lg p-6 space-y-5 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-black text-white">💳 Nạp Số Dư Tài Khoản</h3>
+        <button onclick="UIHelperModule.closeModal('topup-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-[#0c061f] p-1 rounded-2xl">
+        <button id="topup-tab-qr" onclick="TopupModule.switchTab('qr')" class="py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white">Chuyển Khoản QR (100%)</button>
+        <button id="topup-tab-card" onclick="TopupModule.switchTab('card')" class="py-2.5 rounded-xl text-xs font-bold text-slate-400">Nạp Thẻ Cào</button>
+      </div>
+
+      <!-- Tab QR -->
+      <div id="topup-qr-section" class="space-y-4">
+        <div class="bg-[#0d0622] border border-purple-700/40 rounded-2xl p-4 text-center space-y-3">
+          <img id="topup-qr-image" src="https://img.vietqr.io/image/MB-0395033213-compact2.png?accountName=PHAM%20MINH%20NHAT" alt="Mã QR Nạp Tiền" onerror="this.src='https://placehold.co/260x260/1e1b4b/e9d5ff?text=QR+MOMO+0395033213'" class="w-48 h-48 mx-auto rounded-2xl object-contain bg-white p-2" />
+          <div class="text-xs text-slate-300 space-y-1">
+            <div>Chủ tài khoản: <strong class="text-white">PHẠM MINH NHẬT</strong></div>
+            <div>Số Momo / Bank: <strong class="text-amber-400">0395033213</strong></div>
+            <div class="text-emerald-400">Nội dung CK: <strong id="qr-transfer-note">NAPTIEN</strong></div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-300">Số tiền bạn đã chuyển (VNĐ)</label>
+          <input id="qr-amount-input" type="text" inputmode="numeric" oninput="TopupModule.formatInput(this)" placeholder="Ví dụ: 100.000" class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white" />
+        </div>
+        <button id="qr-submit-btn" onclick="TopupModule.submitQR()" class="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm">
+          📩 Xác Nhận Đã Chuyển Khoản
+        </button>
+      </div>
+
+      <!-- Tab Thẻ Cào -->
+      <div id="topup-card-section" class="hidden space-y-4">
+        <div id="card-fee-board" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs"></div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Loại thẻ</label>
+            <select id="card-type-select" onchange="TopupModule.updateCardEstimate()" class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3 py-2.5 text-xs text-white"></select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-300">Mệnh giá</label>
+            <select id="card-value-select" onchange="TopupModule.updateCardEstimate()" class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3 py-2.5 text-xs text-white">
+              <option value="10000">10.000đ</option>
+              <option value="20000">20.000đ</option>
+              <option value="50000" selected>50.000đ</option>
+              <option value="100000">100.000đ</option>
+              <option value="200000">200.000đ</option>
+              <option value="500000">500.000đ</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <input id="card-serial-input" type="text" placeholder="Nhập số Serial thẻ..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          <input id="card-code-input" type="text" placeholder="Nhập mã thẻ cào..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+        </div>
+
+        <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2.5 flex items-center justify-between text-xs">
+          <span class="text-slate-300">Thực nhận vào ví:</span>
+          <strong id="card-real-receive" class="text-base text-emerald-400">41.750đ</strong>
+        </div>
+
+        <button id="card-submit-btn" onclick="TopupModule.submitCard()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm">
+          🚀 Gửi Thẻ Cào Xét Duyệt
+        </button>
+      </div>
+
+      <!-- Lịch sử nạp tiền gần đây của tài khoản -->
+      <div class="border-t border-purple-800/50 pt-3 space-y-2">
+        <div class="text-xs font-bold text-purple-300">📜 Lịch sử nạp tiền của bạn</div>
+        <div id="user-topups-history" class="space-y-1.5 max-h-36 overflow-y-auto text-xs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 4: ĐƠN HÀNG & CHAT RIÊNG TỪNG ĐƠN + ZALO SHOP       -->
+  <!-- ========================================================= -->
+  <div id="orders-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#140b2e] border border-purple-600/40 rounded-3xl w-full max-w-3xl p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between shrink-0">
+        <h3 class="text-xl font-black text-white">📦 Lịch Sử Đơn Hàng &amp; Chat Giao Dịch</h3>
+        <button onclick="UIHelperModule.closeModal('orders-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 overflow-hidden">
+        <div id="user-orders-list" class="md:col-span-5 overflow-y-auto space-y-2.5 pr-1 max-h-[60vh]"></div>
+
+        <div class="md:col-span-7 bg-[#0d0622] border border-purple-700/40 rounded-2xl p-3.5 flex flex-col justify-between h-[55vh] md:h-auto">
+          <div class="border-b border-purple-800/40 pb-2.5 flex items-center justify-between gap-2">
+            <div>
+              <span id="chat-order-header" class="text-xs font-bold text-purple-300">Chọn một đơn hàng để chat</span>
+            </div>
+            <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[11px] font-bold hover:bg-sky-500/30 transition shrink-0">
+              💬 Nhắn Zalo Shop
+            </a>
+          </div>
+
+          <div class="my-2 px-3 py-1.5 rounded-xl bg-sky-950/60 border border-sky-500/25 text-[11px] text-sky-200 flex items-center justify-between gap-2">
+            <span>Cần duyệt đơn siêu tốc? Nhắn trực tiếp Zalo Shop!</span>
+            <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="font-extrabold text-sky-400 underline shrink-0">0395033213</a>
+          </div>
+
+          <div id="order-chat-messages" class="flex-1 overflow-y-auto space-y-2 py-2 text-xs"></div>
+
+          <form onsubmit="OrderModule.sendChatMessage(event)" class="pt-2 border-t border-purple-800/40 flex gap-2">
+            <input id="order-chat-input" type="text" placeholder="Nhập tin nhắn gửi Admin..." class="flex-1 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+            <button type="submit" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">Gửi</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 5: BẢNG CẤP BẬC VIP (LÊN TỚI ĐẠI ĐẾ 6%)             -->
+  <!-- ========================================================= -->
+  <div id="rank-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#140b2e] border border-purple-600/40 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl max-h-[88vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-black text-white">👑 Hệ Thống Cấp Bậc Thành Viên VIP</h3>
+        <button onclick="UIHelperModule.closeModal('rank-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+      <p class="text-xs text-slate-300">Tích lũy tổng chi tiêu hoàn tất để tự động thăng hạng và nhận chiết khấu trọn đời (không áp dụng giảm giá cho danh mục Robux).</p>
+
+      <div id="rank-progress-card" class="rounded-2xl bg-gradient-to-br from-[#1d1042] to-[#120829] border border-purple-500/40 p-4 space-y-2.5"></div>
+
+      <div id="rank-tiers-list" class="space-y-2.5"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- HIỆU ỨNG THĂNG HẠNG: RỒNG NGẬM HẠNG CŨ & HẠNG MỚI RƠI XUỐNG -->
+  <!-- ========================================================= -->
+  <div id="rankup-celebration-overlay" class="hidden fixed inset-0 z-[70] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-hidden">
+    <div class="relative w-full max-w-md text-center space-y-6 py-8">
+      <div class="relative h-36 flex items-center justify-center">
+        <div id="rankup-dragon-actor" class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <svg class="w-56 h-20 drop-shadow-[0_0_20px_rgba(251,191,36,0.85)]" viewBox="0 0 260 90" fill="none">
+            <path d="M12 48 C2 36, 0 28, 18 35 C8 44, 4 54, 22 52 C10 60, 8 68, 26 58 Z" fill="#fbbf24"/>
+            <path d="M22 48 C48 22, 75 68, 108 42 C138 18, 168 62, 204 38" stroke="#f43f5e" stroke-width="11" stroke-linecap="round"/>
+            <path d="M25 51 C50 27, 75 71, 108 46 C138 22, 168 65, 202 42" stroke="#fde68a" stroke-width="3" stroke-linecap="round"/>
+            <path d="M198 34 C210 26, 228 28, 236 37 C228 45, 212 46, 200 42 Z" fill="#f43f5e"/>
+            <path d="M206 30 L194 14 M212 29 L203 12" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="223" cy="35" r="2.5" fill="#fef08a"/>
+          </svg>
+        </div>
+
+        <div id="rankup-old-badge" class="absolute z-10 px-5 py-2.5 rounded-2xl text-base font-black shadow-xl bg-slate-700 text-slate-200">
+          Đồng
+        </div>
+
+        <div id="rankup-new-badge" class="absolute z-30 px-7 py-3.5 rounded-2xl text-xl font-black shadow-[0_0_35px_rgba(251,191,36,0.75)] border-2 border-amber-300 bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950">
+          Bạc
+        </div>
+      </div>
+
+      <div id="rankup-congrats-box" class="space-y-3 bg-[#170c38]/95 border border-amber-400/50 rounded-3xl p-6 shadow-2xl">
+        <div class="text-xs font-extrabold tracking-widest text-amber-400 uppercase">🎊 ĐỘT PHÁ CẢNH GIỚI VIP 🎊</div>
+        <h3 class="text-2xl font-black text-white">Chúc Mừng Thăng Hạng!</h3>
+        <p id="rankup-congrats-desc" class="text-sm text-purple-200 leading-relaxed">
+          Bạn đã chính thức thăng lên hạng <strong class="text-amber-300">Bạc</strong> và mở khóa ưu đãi giảm giá trọn đời!
+        </p>
+        <button onclick="UIHelperModule.closeRankUpCelebration()" class="mt-2 w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-sm shadow-lg hover:brightness-110 transition">
+          Tuyệt Vời! Nhận Đặc Quyền
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 6: ADMIN PANEL TOÀN NĂNG                            -->
+  <!-- ========================================================= -->
+  <div id="admin-modal" class="modal-layer hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-[#130a2b] border border-amber-500/40 rounded-3xl w-full max-w-5xl p-5 sm:p-6 space-y-4 shadow-2xl max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between shrink-0 border-b border-purple-800/50 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-black text-xs">ADMIN PANEL</span>
+          <h3 class="text-lg sm:text-xl font-black text-white">Quản Trị Hệ Thống Shop Phạm Nhật</h3>
+        </div>
+        <button onclick="UIHelperModule.closeModal('admin-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 shrink-0">
+        <button onclick="AdminModule.switchTab('orders')" data-admintab="orders" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950">📦 Đơn Hàng &amp; Chat</button>
+        <button onclick="AdminModule.switchTab('topups')" data-admintab="topups" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">💳 Duyệt Nạp Tiền</button>
+        <button onclick="AdminModule.switchTab('products')" data-admintab="products" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">🐉 Sản Phẩm</button>
+        <button onclick="AdminModule.switchTab('users')" data-admintab="users" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">👥 Thành Viên &amp; Ban Acc</button>
+        <button onclick="AdminModule.switchTab('settings')" data-admintab="settings" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">⚙️ Tỷ Giá, Thuế Card &amp; QR</button>
+      </div>
+
+      <div id="admin-content-area" class="flex-1 overflow-y-auto pr-1 space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Hộp thông báo Toast nổi -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[60] space-y-2 max-w-xs w-full pointer-events-none"></div>
+
+  <!-- ========================================================= -->
+  <!-- KIẾN TRÚC JAVASCRIPT ĐỒNG BỘ SUPABASE & RỒNG FULONG        -->
+  <!-- ========================================================= -->
+  <script>
+    /* ============================================================
+     * CẤU HÌNH KẾT NỐI SUPABASE (CHỈ DÙNG ANON PUBLIC KEY)
+     * URL và Publishable Key của dự án Supabase Shop Phạm Nhật
+     * ============================================================ */
+    // Owner Admin identity: nhatpham328@gmail.com. Initial password is created in Supabase Auth Dashboard, never stored in this client file.
+    const ADMIN_OWNER_EMAIL = 'nhatpham328@gmail.com';
+
+    const SUPABASE_CONFIG = {
+      URL: 'https://lbaheotonndxoqckjkyp.supabase.co',
+      ANON_KEY: 'sb_publishable_MUBLx067IXxXQgQRwNyNFQ_xZ1Gqs_d'
+    };
+
+
+    const isSupabaseConfigured =
+      SUPABASE_CONFIG.URL.startsWith('https://') &&
+      !SUPABASE_CONFIG.URL.includes('YOUR_PROJECT_ID') &&
+      !SUPABASE_CONFIG.ANON_KEY.includes('YOUR_SUPABASE_ANON_PUBLIC_KEY');
+
+    const supabaseClient = isSupabaseConfigured
+      ? window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY)
+      : null;
+
+    /* ============================================================
+     * MODULE 0: FulongMascotModule - Rồng Thiên Fulong Bay Linh Động
+     * ============================================================ */
+    const FulongMascotModule = {
+      enabled: localStorage.getItem('spn_fulong_enabled') !== 'false',
+
+      toggle() {
+        this.enabled = !this.enabled;
+        localStorage.setItem('spn_fulong_enabled', this.enabled ? 'true' : 'false');
+        this.syncUI();
+      },
+
+      syncUI() {
+        const canvas = document.getElementById('fulong-mascot-canvas');
+        const label = document.getElementById('fulong-toggle-label');
+        const btn = document.getElementById('fulong-toggle-btn');
+        if (!canvas) return;
+
+        if (this.enabled) {
+          canvas.classList.remove('hidden');
+          if (label) label.textContent = 'Fulong: Bật';
+          if (btn) btn.classList.remove('opacity-50');
+        } else {
+          canvas.classList.add('hidden');
+          if (label) label.textContent = 'Fulong: Tắt';
+          if (btn) btn.classList.add('opacity-50');
+        }
+      },
+
+      init() {
+        this.syncUI();
+        const canvas = document.getElementById('fulong-mascot-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        const resizeCanvas = () => {
+          w = window.innerWidth;
+          h = window.innerHeight;
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const NUM_SEGMENTS = 28;
+        const SEG_SPACING = 6.4;
+        const segments = [];
+        const startX = w * 0.25;
+        const startY = h * 0.24;
+
+        for (let i = 0; i < NUM_SEGMENTS; i++) {
+          segments.push({ x: startX - i * SEG_SPACING, y: startY, angle: 0 });
+        }
+
+        const sparkles = [];
+        let time = 0;
+
+        const spawnSparkle = (x, y) => {
+          if (sparkles.length > 48) return;
+          sparkles.push({
+            x: x + (Math.random() - 0.5) * 14,
+            y: y + (Math.random() - 0.5) * 14,
+            vx: (Math.random() - 0.5) * 0.65,
+            vy: (Math.random() - 0.5) * 0.65 - 0.2,
+            size: 1.2 + Math.random() * 2.2,
+            alpha: 0.95,
+            gold: Math.random() > 0.28
+          });
+        };
+
+        const drawSmallClawLeg = (x, y, angle, side, phase) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle + side * (0.65 + Math.sin(phase) * 0.24));
+
+          ctx.fillStyle = '#B91C1C';
+          ctx.beginPath();
+          ctx.ellipse(0, side * 5, 3.1, 6.2, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.translate(0, side * 9.5);
+          ctx.rotate(side * 0.45);
+          ctx.fillStyle = '#DC2626';
+          ctx.beginPath();
+          ctx.ellipse(0, side * 3, 2.1, 4.3, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#FDE047';
+          ctx.lineWidth = 1.2;
+          for (let c = -1; c <= 1; c++) {
+            ctx.beginPath();
+            ctx.moveTo(c * 1.3, side * 6.2);
+            ctx.lineTo(c * 2.0 + 1.4, side * 9.2);
+            ctx.stroke();
+          }
+          ctx.restore();
+        };
+
+        const drawFulongHead = (head, t) => {
+          ctx.save();
+          ctx.translate(head.x, head.y);
+          ctx.rotate(head.angle);
+
+          if (Math.cos(head.angle) < 0) ctx.scale(1, -1);
+
+          // Sừng nhánh vàng kim đầu đỏ
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          [-1, 1].forEach(side => {
+            ctx.save();
+            ctx.translate(-2, side * 4.5);
+            ctx.rotate(side * 0.22);
+
+            ctx.strokeStyle = '#FDE047';
+            ctx.lineWidth = 3.1;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(-10, side * 7, -21, side * 6);
+            ctx.stroke();
+
+            ctx.lineWidth = 2.0;
+            ctx.beginPath();
+            ctx.moveTo(-9, side * 4.5);
+            ctx.lineTo(-14, side * 10.5);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#DC2626';
+            ctx.lineWidth = 2.3;
+            ctx.beginPath();
+            ctx.moveTo(-18, side * 6.2);
+            ctx.lineTo(-23, side * 5.2);
+            ctx.moveTo(-12.5, side * 9);
+            ctx.lineTo(-15.5, side * 11.8);
+            ctx.stroke();
+            ctx.restore();
+          });
+
+          // Bờm lửa đỏ vàng
+          for (let m = 0; m < 7; m++) {
+            const ang = -2.2 + m * 0.72 + Math.sin(t * 7 + m) * 0.08;
+            ctx.fillStyle = m % 2 === 0 ? '#991B1B' : (m === 3 ? '#F59E0B' : '#DC2626');
+            ctx.beginPath();
+            ctx.moveTo(-3, 0);
+            ctx.lineTo(Math.cos(ang) * 16, Math.sin(ang) * 14);
+            ctx.lineTo(Math.cos(ang + 0.35) * 9, Math.sin(ang + 0.35) * 8);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Mõm trên đỏ chu sa
+          const headGrad = ctx.createLinearGradient(-8, 0, 16, 0);
+          headGrad.addColorStop(0, '#991B1B');
+          headGrad.addColorStop(0.5, '#DC2626');
+          headGrad.addColorStop(1, '#EF4444');
+          ctx.fillStyle = headGrad;
+
+          ctx.beginPath();
+          ctx.moveTo(-7, -6);
+          ctx.quadraticCurveTo(4, -7.5, 15, -3.5);
+          ctx.quadraticCurveTo(17, 0, 14, 2.5);
+          ctx.lineTo(-6, 4.5);
+          ctx.closePath();
+          ctx.fill();
+
+          // Hàm dưới vàng kem & râu cằm
+          ctx.fillStyle = '#FEF08A';
+          ctx.beginPath();
+          ctx.moveTo(-4, 3);
+          ctx.lineTo(12, 2.5);
+          ctx.lineTo(9, 5.5);
+          ctx.lineTo(-4, 5.5);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = '#991B1B';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(4, 5.5);
+          ctx.quadraticCurveTo(-2, 9 + Math.sin(t * 6) * 2, -8, 8.5);
+          ctx.stroke();
+
+          // Mắt vàng phát sáng
+          ctx.fillStyle = '#FEF08A';
+          ctx.shadowColor = '#FACC15';
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.ellipse(4.5, -2.5, 2.6, 1.5, -0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = '#7F1D1D';
+          ctx.beginPath();
+          ctx.arc(5, -2.5, 0.9, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Cặp râu rồng đỏ dài uốn lượn
+          [-1, 1].forEach(side => {
+            const wave1 = Math.sin(t * 5.2 + side) * 9;
+            const wave2 = Math.cos(t * 4.4 + side * 1.5) * 12;
+            ctx.strokeStyle = '#EF4444';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(12, side * 1.8);
+            ctx.bezierCurveTo(
+              18, side * (10 + wave1 * 0.4),
+              2, side * (22 + wave1),
+              -22, side * (16 + wave2)
+            );
+            ctx.stroke();
+          });
+
+          ctx.restore();
+        };
+
+        const animateFulong = () => {
+          ctx.clearRect(0, 0, w, h);
+
+          if (this.enabled) {
+            time += 0.016;
+
+            const marginX = Math.min(110, w * 0.14);
+            const marginY = Math.min(100, h * 0.14);
+            const centerX = w * 0.5;
+            const centerY = h * 0.42;
+            const ampX = Math.max(80, (w - marginX * 2) * 0.46);
+            const ampY = Math.max(60, (h - marginY * 2) * 0.34);
+
+            const targetX = centerX + Math.sin(time * 0.42) * ampX + Math.cos(time * 1.1) * 28;
+            const targetY = centerY + Math.sin(time * 0.84) * ampY + Math.sin(time * 1.7) * 18;
+
+            const head = segments[0];
+            const dx = targetX - head.x;
+            const dy = targetY - head.y;
+            head.angle = Math.atan2(dy, dx);
+            head.x += dx * 0.045;
+            head.y += dy * 0.045;
+
+            for (let i = 1; i < NUM_SEGMENTS; i++) {
+              const prev = segments[i - 1];
+              const curr = segments[i];
+              const segDx = prev.x - curr.x;
+              const segDy = prev.y - curr.y;
+              const baseAngle = Math.atan2(segDy, segDx);
+              const slither = Math.sin(time * 5.5 - i * 0.42) * 0.14;
+              curr.angle = baseAngle + slither;
+              curr.x = prev.x - Math.cos(curr.angle) * SEG_SPACING;
+              curr.y = prev.y - Math.sin(curr.angle) * SEG_SPACING;
+            }
+
+            if (Math.random() < 0.55) {
+              const tailSeg = segments[NUM_SEGMENTS - 1];
+              spawnSparkle(tailSeg.x, tailSeg.y);
+            }
+            if (Math.random() < 0.25) {
+              const midSeg = segments[Math.floor(Math.random() * 16) + 4];
+              spawnSparkle(midSeg.x, midSeg.y);
+            }
+
+            for (let i = sparkles.length - 1; i >= 0; i--) {
+              const sp = sparkles[i];
+              sp.x += sp.vx;
+              sp.y += sp.vy;
+              sp.alpha -= 0.018;
+              if (sp.alpha <= 0) {
+                sparkles.splice(i, 1);
+                continue;
+              }
+              ctx.save();
+              ctx.globalAlpha = sp.alpha;
+              ctx.fillStyle = sp.gold ? '#FDE047' : '#F87171';
+              ctx.shadowColor = sp.gold ? '#FACC15' : '#EF4444';
+              ctx.shadowBlur = 8;
+              ctx.beginPath();
+              ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+
+            drawSmallClawLeg(segments[7].x, segments[7].y, segments[7].angle, 1, time * 4);
+            drawSmallClawLeg(segments[7].x, segments[7].y, segments[7].angle, -1, time * 4 + Math.PI);
+            drawSmallClawLeg(segments[17].x, segments[17].y, segments[17].angle, 1, time * 4 + 1.2);
+            drawSmallClawLeg(segments[17].x, segments[17].y, segments[17].angle, -1, time * 4 + 4.3);
+
+            // Chùm lông đuôi lửa
+            const tail = segments[NUM_SEGMENTS - 1];
+            ctx.save();
+            ctx.translate(tail.x, tail.y);
+            ctx.rotate(tail.angle);
+            for (let f = -2; f <= 2; f++) {
+              ctx.fillStyle = f % 2 === 0 ? '#DC2626' : '#FACC15';
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              ctx.quadraticCurveTo(-10, f * 4.5, -20, f * 3.2 + Math.sin(time * 7 + f) * 2.5);
+              ctx.quadraticCurveTo(-10, f * 1.5, 0, 0);
+              ctx.fill();
+            }
+            ctx.restore();
+
+            // Thân rồng từng đốt có vảy lưới vàng kim và bụng vàng kem
+            for (let i = NUM_SEGMENTS - 1; i >= 1; i--) {
+              const seg = segments[i];
+              const ratio = 1 - i / NUM_SEGMENTS;
+              const radius = 2.4 + Math.sin(ratio * Math.PI * 0.85) * 6.2;
+
+              ctx.save();
+              ctx.translate(seg.x, seg.y);
+              ctx.rotate(seg.angle);
+
+              if (i % 2 === 0 && i < NUM_SEGMENTS - 2) {
+                ctx.fillStyle = '#991B1B';
+                ctx.beginPath();
+                ctx.moveTo(-2, -radius + 1);
+                ctx.lineTo(-6, -radius - 5.5);
+                ctx.lineTo(2, -radius + 1);
+                ctx.closePath();
+                ctx.fill();
+              }
+
+              ctx.fillStyle = '#DC2626';
+              ctx.beginPath();
+              ctx.ellipse(0, 0, radius * 1.15, radius, 0, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = '#FEF08A';
+              ctx.beginPath();
+              ctx.ellipse(0, radius * 0.38, radius * 0.95, radius * 0.48, 0, 0, Math.PI);
+              ctx.fill();
+
+              if (radius > 4.2) {
+                ctx.strokeStyle = '#FACC15';
+                ctx.lineWidth = 0.9;
+                ctx.beginPath();
+                ctx.moveTo(-radius * 0.5, -radius * 0.2);
+                ctx.lineTo(0, -radius * 0.65);
+                ctx.lineTo(radius * 0.5, -radius * 0.2);
+                ctx.lineTo(0, radius * 0.15);
+                ctx.closePath();
+                ctx.stroke();
+              }
+
+              ctx.restore();
+            }
+
+            drawFulongHead(segments[0], time);
+          }
+
+          requestAnimationFrame(animateFulong);
+        };
+
+        requestAnimationFrame(animateFulong);
+      }
+    };
+
+    /* ============================================================
+     * MODULE 1: StorageModule - Quản lý dữ liệu Supabase & Fallback
+     * ============================================================ */
+    const DEFAULT_CATALOG_PRODUCTS = [
+      { id: 'p_1', name: 'Rồng Fulong Imperial (FM DBL)', category: 'dragon', price: 350000, desc: 'Fulong Full Mutation, Double Legendary Color chuẩn sưu tầm.', badge: 'Fulong FM DBL', color: 'text-amber-300' },
+      { id: 'p_2', name: 'Rồng Astraeisis Glow', category: 'dragon', price: 180000, desc: 'Rồng Astraeisis hiếm giao dịch trực tiếp trong Dragon Adventures.', badge: 'Astraeisis', color: 'text-purple-300' },
+      { id: 'p_3', name: 'Mutation Cure / Mat Potion', category: 'pot', price: 25000, desc: 'Bình thuốc nâng cấp màu sắc và đột biến cho rồng.', badge: 'Dragon Potion', color: 'text-pink-300' },
+      { id: 'p_4', name: 'Rồng Moixaura Legendary', category: 'dragon', price: 420000, desc: 'Moixaura đột biến hiếm chỉ số cao, giao dịch nhanh 24/7.', badge: 'Moixaura', color: 'text-cyan-300' }
+    ];
+
+    const StorageModule = {
+      state: {
+        user: null,
+        profile: null,
+        settings: {
+          coinPer10k: 100000,
+          robuxPer10k: 80,
+          qrUrl: 'https://img.vietqr.io/image/MB-0395033213-compact2.png?accountName=PHAM%20MINH%20NHAT',
+          cardFees: { Viettel: 16.5, Vinaphone: 16, Garena: 16.5, Zing: 16.5 }
+        },
+        products: [...DEFAULT_CATALOG_PRODUCTS],
+        orders: [],
+        topups: [],
+        allUsers: []
+      },
+
+      RANK_TIERS: [
+        { id: 'dong', name: 'Đồng', minSpent: 0, discount: 0, badgeClass: 'bg-slate-700 text-slate-200' },
+        { id: 'bac', name: 'Bạc', minSpent: 500000, discount: 1, badgeClass: 'bg-slate-400 text-slate-950' },
+        { id: 'vang', name: 'Vàng', minSpent: 1000000, discount: 2, badgeClass: 'bg-amber-400 text-slate-950' },
+        { id: 'bachkim', name: 'Bạch Kim', minSpent: 2000000, discount: 3, badgeClass: 'bg-cyan-300 text-slate-950' },
+        { id: 'kimcuong', name: 'Kim Cương', minSpent: 3000000, discount: 4, badgeClass: 'bg-indigo-400 text-slate-950' },
+        { id: 'phithang', name: 'Phi Thăng', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
+        { id: 'daide', name: 'Đại Đế', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
+      ],
+
+      async syncPublicData() {
+        const localSettings = JSON.parse(localStorage.getItem('spn_local_settings') || 'null');
+        if (localSettings) this.state.settings = localSettings;
+        const localProducts = JSON.parse(localStorage.getItem('spn_local_products') || 'null');
+        if (localProducts && localProducts.length > 0) this.state.products = localProducts;
+
+        if (!supabaseClient) return;
+        try {
+          const { data: settingsData } = await supabaseClient
+            .from('shop_settings')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+
+          if (settingsData) {
+            this.state.settings = {
+              coinPer10k: Number(settingsData.coin_per_10k) || 100000,
+              robuxPer10k: Number(settingsData.robux_per_10k) || 80,
+              qrUrl: settingsData.qr_url,
+              cardFees: settingsData.card_fees || { Viettel: 16.5, Vinaphone: 16, Garena: 16.5, Zing: 16.5 }
+            };
+          }
+
+          const { data: productsData } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('active', true)
+            .order('created_at', { ascending: false });
+
+          if (productsData && productsData.length > 0) {
+            this.state.products = productsData.map(p => ({
+              id: p.id,
+              name: p.name,
+              category: p.category,
+              price: Number(p.price),
+              desc: p.description || '',
+              badge: p.badge,
+              color: p.color
+            }));
+          }
+        } catch (err) {
+          console.warn('Chạy dữ liệu cục bộ:', err);
+        }
+      },
+
+      async syncUserData() {
+        // Chế độ production: chỉ dùng phiên Supabase, không tin phiên localStorage tự tạo.
+        const localSession = JSON.parse(localStorage.getItem('spn_local_session') || 'null');
+        if (localSession && String(localSession.id).startsWith('local_')) {
+          localStorage.removeItem('spn_local_session');
+        }
+        if (!supabaseClient) {
+          this.state.profile = null;
+          this.state.user = null;
+          this.state.orders = [];
+          this.state.topups = [];
+          this.state.allUsers = [];
+          CartModule.items = [];
+          CartModule.updateBadge();
+          return;
+        }
+
+        try {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (!session || !session.user) {
+            this.state.user = null;
+            this.state.profile = null;
+            this.state.orders = [];
+            this.state.topups = [];
+            this.state.allUsers = [];
+            CartModule.items = [];
+            CartModule.updateBadge();
+            return;
+          }
+
+          this.state.user = session.user;
+          const { data: profileData, error: profErr } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          // Repair missing profile for newly registered Supabase users.
+          // This insert is subject to Supabase RLS; if policy blocks it, the UI reports the issue.
+          let resolvedProfile = profileData;
+          if (!resolvedProfile && !profErr) {
+            const metadataName = session.user.user_metadata?.name || session.user.user_metadata?.full_name || (session.user.email || '').split('@')[0];
+            const { data: createdProfile, error: createProfileErr } = await supabaseClient
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                name: metadataName,
+                email: session.user.email,
+                balance: 0,
+                total_spent: 0,
+                banned: false
+              })
+              .select('*')
+              .maybeSingle();
+            if (!createProfileErr && createdProfile) resolvedProfile = createdProfile;
+            else {
+              console.warn('Profile auto-create failed; check profiles table/RLS:', createProfileErr);
+              UIHelperModule.toast('Đăng nhập được nhưng chưa tạo hồ sơ. Admin cần kiểm tra Supabase profiles/RLS.', 'error');
+            }
+          }
+          if (profErr || !resolvedProfile) return;
+
+          if (resolvedProfile.banned) {
+            await supabaseClient.auth.signOut();
+            this.state.user = null;
+            this.state.profile = null;
+            UIHelperModule.toast('🚫 Tài khoản của bạn đã bị Admin khóa (Ban)!', 'error');
+            return;
+          }
+
+          this.state.profile = {
+            id: resolvedProfile.id,
+            name: resolvedProfile.name,
+            email: resolvedProfile.email,
+            role: String(session.user.email || '').toLowerCase() === ADMIN_OWNER_EMAIL ? 'admin' : 'user',
+            balance: Number(resolvedProfile.balance) || 0,
+            totalSpent: Number(resolvedProfile.total_spent) || 0,
+            banned: Boolean(resolvedProfile.banned)
+          };
+
+          const { data: cartRow } = await supabaseClient
+            .from('user_carts')
+            .select('items')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+          CartModule.items = Array.isArray(cartRow?.items) ? cartRow.items : [];
+          CartModule.updateBadge();
+
+          await this.refreshTopups();
+          await this.refreshOrders();
+          if (this.state.profile.role === 'admin') {
+            await this.refreshAllUsers();
+          }
+        } catch (err) {
+          console.warn('Đồng bộ phiên cục bộ:', err);
+        }
+      },
+
+      async refreshOrders() {
+        if (!this.state.profile) return;
+        if (!supabaseClient || String(this.state.profile.id).startsWith('local_')) {
+          this.state.orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+          return;
+        }
+        const { data: ordersData } = await supabaseClient
+          .from('orders')
+          .select('*, order_messages(*)')
+          .order('created_at', { ascending: false });
+
+        if (ordersData) {
+          this.state.orders = ordersData.map(o => ({
+            id: o.id,
+            userId: o.user_id,
+            userName: o.user_name,
+            robloxUser: o.roblox_user,
+            items: Array.isArray(o.items) ? o.items : [],
+            totalPaid: Number(o.total_paid),
+            status: o.status,
+            createdAt: new Date(o.created_at).toLocaleString('vi-VN'),
+            messages: (o.order_messages || [])
+              .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+              .map(m => ({
+                sender: m.sender_role,
+                text: m.text,
+                time: new Date(m.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+              }))
+          }));
+        }
+      },
+
+      async refreshTopups() {
+        if (!this.state.profile) return;
+        if (!supabaseClient || String(this.state.profile.id).startsWith('local_')) {
+          this.state.topups = JSON.parse(localStorage.getItem('spn_local_topups') || '[]');
+          return;
+        }
+        const { data: topupsData } = await supabaseClient
+          .from('topups')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (topupsData) {
+          this.state.topups = topupsData.map(t => ({
+            id: t.id,
+            userId: t.user_id,
+            userName: t.user_name,
+            method: t.method,
+            detail: t.detail,
+            amount: Number(t.amount),
+            realReceive: Number(t.real_receive),
+            status: t.status,
+            createdAt: new Date(t.created_at).toLocaleString('vi-VN')
+          }));
+        }
+      },
+
+      async refreshAllUsers() {
+        if (this.state.profile?.role !== 'admin') return;
+        if (!supabaseClient || String(this.state.profile.id).startsWith('local_')) {
+          this.state.allUsers = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+          return;
+        }
+        const { data: usersData } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (usersData) {
+          this.state.allUsers = usersData.map(u => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            balance: Number(u.balance) || 0,
+            totalSpent: Number(u.total_spent) || 0,
+            banned: Boolean(u.banned)
+          }));
+        }
+      },
+
+      getSettings() { return this.state.settings; },
+      getProducts() { return this.state.products; },
+      getOrders() { return this.state.orders; },
+      getTopups() { return this.state.topups; },
+      getUsers() { return this.state.allUsers; }
+    };
+
+    /* ============================================================
+     * MODULE 2: UIHelperModule - Định dạng số, Modal, Toast & Rank
+     * ============================================================ */
+    const UIHelperModule = {
+      formatDots(num) {
+        const n = Math.floor(Number(num) || 0);
+        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      },
+
+      parseDots(str) {
+        const digits = String(str || '').replace(/\D/g, '');
+        return digits ? parseInt(digits, 10) : 0;
+      },
+
+      formatMoney(num) {
+        return this.formatDots(num) + 'đ';
+      },
+
+      getUserRank(totalSpent) {
+        const spent = Number(totalSpent) || 0;
+        let current = StorageModule.RANK_TIERS[0];
+        for (const tier of StorageModule.RANK_TIERS) {
+          if (spent >= tier.minSpent) current = tier;
+        }
+        return current;
+      },
+
+      toast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const colors = {
+          success: 'bg-emerald-950/95 border-emerald-500 text-emerald-200',
+          error: 'bg-rose-950/95 border-rose-500 text-rose-200',
+          info: 'bg-[#1b0f3d]/95 border-purple-500 text-purple-100'
+        };
+        const el = document.createElement('div');
+        el.className = `pointer-events-auto border px-4 py-3 rounded-2xl text-xs font-bold shadow-xl transition-all ${colors[type] || colors.info}`;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 300);
+        }, 3500);
+      },
+
+      openModal(id) {
+        document.getElementById(id)?.classList.remove('hidden');
+      },
+
+      closeModal(id) {
+        document.getElementById(id)?.classList.add('hidden');
+      },
+
+      toggleMobileMenu() {
+        document.getElementById('mobile-menu')?.classList.toggle('hidden');
+      },
+
+      async openTopupModal(tab = 'qr') {
+        if (!AuthModule.getCurrentUser()) {
+          this.toast('Vui lòng đăng nhập để nạp số dư!', 'error');
+          AuthModule.openAuthModal('login');
+          return;
+        }
+        await StorageModule.refreshTopups();
+        TopupModule.initTopupView();
+        TopupModule.switchTab(tab);
+        this.openModal('topup-modal');
+      },
+
+      openRankModal() {
+        const user = AuthModule.getCurrentUser();
+        const userSpent = user ? user.totalSpent : 0;
+        const currentRank = this.getUserRank(userSpent);
+
+        const currentIndex = StorageModule.RANK_TIERS.findIndex(t => t.id === currentRank.id);
+        const nextRank = StorageModule.RANK_TIERS[currentIndex + 1] || null;
+
+        const progressCard = document.getElementById('rank-progress-card');
+        if (nextRank) {
+          const range = nextRank.minSpent - currentRank.minSpent;
+          const earned = Math.max(0, userSpent - currentRank.minSpent);
+          const pct = Math.min(100, Math.round((earned / range) * 100));
+          const remaining = Math.max(0, nextRank.minSpent - userSpent);
+
+          progressCard.innerHTML = `
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400">Hạng hiện tại:</span>
+                <span class="px-2 py-0.5 rounded font-extrabold ${currentRank.badgeClass}">${currentRank.name} (${currentRank.discount}%)</span>
+              </div>
+              <span class="font-bold text-emerald-400">Đã tích lũy: ${this.formatMoney(userSpent)}</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-[#090418] border border-purple-800/60 overflow-hidden p-0.5">
+              <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-400 transition-all duration-500" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-purple-200">Cần thêm <strong class="text-amber-300">${this.formatMoney(remaining)}</strong> để lên <strong class="text-white">${nextRank.name} (-${nextRank.discount}%)</strong></span>
+              <span class="font-extrabold text-amber-400">${pct}%</span>
+            </div>
+          `;
+        } else {
+          progressCard.innerHTML = `
+            <div class="flex items-center justify-between text-xs">
+              <span class="px-2.5 py-1 rounded font-black ${currentRank.badgeClass}">👑 ${currentRank.name} (Tối Cao -${currentRank.discount}%)</span>
+              <span class="font-bold text-emerald-400">Tích lũy: ${this.formatMoney(userSpent)}</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300"></div>
+            <div class="text-[11px] text-amber-300 font-semibold text-center">✨ Bạn đã đạt cảnh giới VIP cao nhất tại Shop Phạm Nhật!</div>
+          `;
+        }
+
+        const listEl = document.getElementById('rank-tiers-list');
+        listEl.innerHTML = StorageModule.RANK_TIERS.map(tier => {
+          const isUnlocked = userSpent >= tier.minSpent;
+          return `
+            <div class="p-3.5 rounded-2xl border ${isUnlocked ? 'bg-purple-900/30 border-purple-500/50' : 'bg-[#0d0622] border-purple-900/30'} flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${tier.badgeClass}">${tier.name}</span>
+                <div>
+                  <div class="text-xs font-bold text-white">Mốc tích lũy: ${this.formatMoney(tier.minSpent)}</div>
+                  <div class="text-[11px] text-slate-400">${isUnlocked ? '✅ Đã mở khóa' : '🔒 Chưa đạt mốc'}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-black text-amber-400">Giảm ${tier.discount}%</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+        this.openModal('rank-modal');
+      },
+
+      triggerRankUpCelebration(oldRank, newRank) {
+        const overlay = document.getElementById('rankup-celebration-overlay');
+        const dragonActor = document.getElementById('rankup-dragon-actor');
+        const oldBadge = document.getElementById('rankup-old-badge');
+        const newBadge = document.getElementById('rankup-new-badge');
+        const congratsBox = document.getElementById('rankup-congrats-box');
+
+        oldBadge.textContent = oldRank.name;
+        oldBadge.className = `absolute z-10 px-5 py-2.5 rounded-2xl text-base font-black shadow-xl ${oldRank.badgeClass}`;
+
+        newBadge.textContent = `👑 ${newRank.name} (-${newRank.discount}%)`;
+        newBadge.className = `absolute z-30 px-7 py-3.5 rounded-2xl text-xl font-black shadow-[0_0_35px_rgba(251,191,36,0.75)] border-2 border-amber-300 ${newRank.badgeClass}`;
+
+        document.getElementById('rankup-congrats-desc').innerHTML =
+          `Bạn đã thăng từ <strong class="text-slate-200">${oldRank.name}</strong> lên <strong class="text-amber-300">${newRank.name}</strong> và nhận ưu đãi giảm <strong class="text-emerald-400">${newRank.discount}%</strong> trọn đời!`;
+
+        dragonActor.classList.remove('anim-dragon-snatch');
+        oldBadge.classList.remove('anim-old-snatched');
+        newBadge.classList.remove('anim-new-skydrop');
+        congratsBox.classList.remove('anim-rank-congrats');
+
+        overlay.classList.remove('hidden');
+        void overlay.offsetWidth;
+
+        dragonActor.classList.add('anim-dragon-snatch');
+        oldBadge.classList.add('anim-old-snatched');
+        newBadge.classList.add('anim-new-skydrop');
+        congratsBox.classList.add('anim-rank-congrats');
+      },
+
+      closeRankUpCelebration() {
+        document.getElementById('rankup-celebration-overlay')?.classList.add('hidden');
+      }
+    };
+
+    /* ============================================================
+     * MODULE 3: AuthModule - Đăng nhập & Đăng ký (Supabase + Fallback)
+     * ============================================================ */
+    const AuthModule = {
+      mode: 'login',
+
+      getCurrentUser() {
+        return StorageModule.state.profile;
+      },
+
+      openAuthModal(mode = 'login') {
+        this.switchAuthTab(mode);
+        UIHelperModule.openModal('auth-modal');
+      },
+
+      switchAuthTab(mode) {
+        this.mode = mode;
+        const isReg = mode === 'register';
+        document.getElementById('auth-modal-title').textContent = isReg ? 'Đăng Ký Tài Khoản Mới' : 'Đăng Nhập Tài Khoản';
+        document.getElementById('register-name-group').classList.toggle('hidden', !isReg);
+        document.getElementById('auth-submit-btn').textContent = isReg ? 'Tạo Tài Khoản' : 'Đăng Nhập Ngay';
+        document.getElementById('tab-login-btn').className = !isReg
+          ? 'py-2 rounded-xl text-xs font-bold bg-purple-600 text-white'
+          : 'py-2 rounded-xl text-xs font-bold text-slate-400';
+        document.getElementById('tab-register-btn').className = isReg
+          ? 'py-2 rounded-xl text-xs font-bold bg-purple-600 text-white'
+          : 'py-2 rounded-xl text-xs font-bold text-slate-400';
+      },
+
+      async handleSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById('auth-email-input').value.trim().toLowerCase();
+        const password = document.getElementById('auth-pass-input').value;
+        const name = document.getElementById('auth-name-input').value.trim();
+        const submitBtn = document.getElementById('auth-submit-btn');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang xử lý...';
+
+        const handleLocalAuth = () => {
+          UIHelperModule.toast('Không thể kết nối Supabase. Vui lòng kiểm tra mạng/cấu hình rồi thử lại.', 'error');
+          return false;
+        };
+
+        try {
+          let success = false;
+          if (!supabaseClient) {
+            success = handleLocalAuth();
+          } else {
+            try {
+              if (this.mode === 'register') {
+                if (!name) {
+                  UIHelperModule.toast('Vui lòng nhập tên hiển thị!', 'error');
+                  return;
+                }
+                const { data, error } = await supabaseClient.auth.signUp({
+                  email,
+                  password,
+                  options: { data: { name } }
+                });
+                if (error) {
+                  UIHelperModule.toast(error.message, 'error');
+                  return;
+                }
+                if (data.session) {
+                  await StorageModule.syncUserData();
+                  UIHelperModule.toast('Đăng ký thành công! Chào mừng ' + name, 'success');
+                } else {
+                  UIHelperModule.toast('Đăng ký thành công! Vui lòng kiểm tra email xác nhận hoặc đăng nhập.', 'success');
+                }
+                success = true;
+              } else {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                  UIHelperModule.toast('Sai email hoặc mật khẩu!', 'error');
+                  return;
+                }
+                await StorageModule.syncUserData();
+                if (this.getCurrentUser()) {
+                  UIHelperModule.toast('Đăng nhập thành công!', 'success');
+                }
+                success = true;
+              }
+            } catch (netErr) {
+              UIHelperModule.toast('Lỗi kết nối Supabase. Vui lòng thử lại khi mạng ổn định.', 'error');
+              success = false;
+            }
+          }
+
+          if (success) {
+            UIHelperModule.closeModal('auth-modal');
+            this.syncHeaderUI();
+            CatalogModule.renderProducts();
+            CatalogModule.handleExchangeInput();
+          }
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = this.mode === 'register' ? 'Tạo Tài Khoản' : 'Đăng Nhập Ngay';
+        }
+      },
+
+      async logout() {
+        localStorage.removeItem('spn_local_session');
+        if (supabaseClient) {
+          try { await supabaseClient.auth.signOut(); } catch (_) {}
+        }
+        await StorageModule.syncUserData();
+        UIHelperModule.toast('Đã đăng xuất tài khoản.', 'info');
+        this.syncHeaderUI();
+        CatalogModule.renderProducts();
+        CatalogModule.handleExchangeInput();
+      },
+
+      syncHeaderUI() {
+        const user = this.getCurrentUser();
+        const guestBox = document.getElementById('auth-guest-box');
+        const userBox = document.getElementById('auth-user-box');
+        const navAdminBtn = document.getElementById('nav-admin-btn');
+        const mobileAdminBtn = document.getElementById('mobile-admin-btn');
+
+        if (!user) {
+          guestBox.classList.remove('hidden');
+          userBox.classList.add('hidden');
+          userBox.classList.remove('flex');
+          navAdminBtn.classList.add('hidden');
+          mobileAdminBtn.classList.add('hidden');
+          return;
+        }
+
+        guestBox.classList.add('hidden');
+        userBox.classList.remove('hidden');
+        userBox.classList.add('flex');
+
+        const rank = UIHelperModule.getUserRank(user.totalSpent);
+        document.getElementById('header-user-name').textContent = user.name;
+        const rankBadge = document.getElementById('header-user-rank');
+        rankBadge.textContent = rank.name;
+        rankBadge.className = `text-[10px] font-extrabold px-1.5 py-0.5 rounded ${rank.badgeClass}`;
+        document.getElementById('header-user-balance').textContent = UIHelperModule.formatMoney(user.balance);
+
+        const isAdmin = user.role === 'admin';
+        navAdminBtn.classList.toggle('hidden', !isAdmin);
+        mobileAdminBtn.classList.toggle('hidden', !isAdmin);
+      }
+    };
+
+    /* ============================================================
+     * MODULE 4: CatalogModule - Danh mục, Lọc giá & Quy đổi động
+     * ============================================================ */
+    const CatalogModule = {
+      currentCategory: 'all',
+
+      setCategory(cat) {
+        this.currentCategory = cat;
+
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+          const active = btn.dataset.cat === cat;
+          btn.className = active
+            ? 'cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-purple-600 text-white shadow-md shadow-purple-600/30 transition flex items-center gap-2'
+            : 'cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2';
+        });
+
+        const exchangePanel = document.getElementById('dynamic-exchange-panel');
+        if (cat === 'coin' || cat === 'robux') {
+          exchangePanel.classList.remove('hidden');
+          this.configureExchangePanel(cat);
+        } else {
+          exchangePanel.classList.add('hidden');
+        }
+
+        this.renderProducts();
+      },
+
+      configureExchangePanel(type) {
+        const settings = StorageModule.getSettings();
+        const isCoin = type === 'coin';
+
+        document.getElementById('exchange-icon-box').innerHTML = isCoin
+          ? `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#F59E0B"/><circle cx="12" cy="12" r="7.5" fill="#FBBF24" stroke="#FEF08A" stroke-width="1.2"/><path d="M12 7.5v9M9.5 10c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" stroke="#92400E" stroke-width="1.6" stroke-linecap="round"/></svg>`
+          : `<svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2ZM12 4.3L5.34 8.15V15.85L12 19.7L18.66 15.85V8.15L12 4.3ZM9.5 9.5H14.5V14.5H9.5V9.5Z"/></svg>`;
+
+        document.getElementById('exchange-title').textContent = isCoin
+          ? 'Quy Đổi Coin Dragon Adventures'
+          : 'Quy Đổi Robux Chính Hãng';
+
+        document.getElementById('exchange-subtitle').textContent = isCoin
+          ? `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(settings.coinPer10k)} Coin`
+          : `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(settings.robuxPer10k)} Robux (Không áp dụng giảm giá VIP)`;
+
+        document.getElementById('exchange-output-label').textContent = isCoin ? 'Số Coin nhận được' : 'Số Robux nhận được';
+        document.getElementById('exchange-unit-badge').textContent = isCoin ? 'COIN' : 'ROBUX';
+
+        const presets = [20000, 50000, 100000, 200000, 500000];
+        document.getElementById('exchange-quick-presets').innerHTML = presets.map(val => `
+          <button onclick="CatalogModule.setQuickVnd(${val})" class="px-3.5 py-2 rounded-xl bg-[#160d33] hover:bg-purple-700/40 border border-purple-700/40 text-xs font-bold text-purple-200 transition">
+            ${UIHelperModule.formatMoney(val)}
+          </button>
+        `).join('');
+
+        this.handleExchangeInput();
+      },
+
+      setQuickVnd(amount) {
+        const input = document.getElementById('vnd-input');
+        input.value = UIHelperModule.formatDots(amount);
+        this.handleExchangeInput();
+      },
+
+      handleExchangeInput() {
+        const input = document.getElementById('vnd-input');
+        if (!input) return;
+
+        const amount = UIHelperModule.parseDots(input.value);
+        input.value = amount > 0 ? UIHelperModule.formatDots(amount) : '';
+
+        const settings = StorageModule.getSettings();
+        const isCoin = this.currentCategory === 'coin';
+        const received = isCoin
+          ? Math.floor((amount / 10000) * settings.coinPer10k)
+          : Math.floor((amount / 10000) * settings.robuxPer10k);
+
+        document.getElementById('exchange-output-value').textContent = UIHelperModule.formatDots(received);
+
+        const user = AuthModule.getCurrentUser();
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+        const discountPct = isCoin ? rank.discount : 0;
+        const finalPrice = Math.round(amount * (1 - discountPct / 100));
+
+        const priceBox = document.getElementById('exchange-final-price-box');
+        if (discountPct > 0 && amount > 0) {
+          priceBox.innerHTML = `
+            <span class="text-sm text-slate-400 line-through">${UIHelperModule.formatMoney(amount)}</span>
+            <span class="text-xl font-black text-emerald-400">${UIHelperModule.formatMoney(finalPrice)}</span>
+            <span class="text-[11px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">-${discountPct}% ${rank.name}</span>
+          `;
+        } else {
+          priceBox.innerHTML = `<span class="text-xl font-black text-white">${UIHelperModule.formatMoney(amount)}</span>`;
+        }
+      },
+
+      async addExchangeToCart(buyNow = false) {
+        const amount = UIHelperModule.parseDots(document.getElementById('vnd-input').value);
+        if (amount < 10000) {
+          UIHelperModule.toast('Số tiền quy đổi tối thiểu là 10.000đ!', 'error');
+          return;
+        }
+        const settings = StorageModule.getSettings();
+        const isCoin = this.currentCategory === 'coin';
+        const received = isCoin
+          ? Math.floor((amount / 10000) * settings.coinPer10k)
+          : Math.floor((amount / 10000) * settings.robuxPer10k);
+
+        const item = {
+          id: 'ex_' + amount + '_' + (isCoin ? 'coin' : 'robux'),
+          name: isCoin
+            ? `Gói ${UIHelperModule.formatDots(received)} Coin Dragon Adventures`
+            : `Gói ${UIHelperModule.formatDots(received)} Robux Chính Hãng`,
+          category: isCoin ? 'coin' : 'robux',
+          price: amount,
+          qty: 1
+        };
+
+        await CartModule.addItem(item);
+        if (buyNow) CartModule.openCartModal();
+      },
+
+      renderProducts() {
+        const settings = StorageModule.getSettings();
+        document.getElementById('hero-coin-rate').textContent = `10k = ${UIHelperModule.formatDots(settings.coinPer10k)}`;
+        document.getElementById('hero-robux-rate').textContent = `10k = ${UIHelperModule.formatDots(settings.robuxPer10k)} R$`;
+
+        const keyword = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+        const priceRange = document.getElementById('price-range-filter')?.value || 'all';
+        const sortBy = document.getElementById('sort-filter')?.value || 'default';
+
+        let products = StorageModule.getProducts();
+
+        if (this.currentCategory !== 'all' && this.currentCategory !== 'coin' && this.currentCategory !== 'robux') {
+          products = products.filter(p => p.category === this.currentCategory);
+        }
+
+        if (keyword) {
+          products = products.filter(p =>
+            (p.name || '').toLowerCase().includes(keyword) ||
+            (p.desc || '').toLowerCase().includes(keyword)
+          );
+        }
+
+        if (priceRange === 'under100') products = products.filter(p => p.price < 100000);
+        else if (priceRange === '100to500') products = products.filter(p => p.price >= 100000 && p.price <= 500000);
+        else if (priceRange === 'over500') products = products.filter(p => p.price > 500000);
+
+        if (sortBy === 'price-asc') products = [...products].sort((a, b) => a.price - b.price);
+        else if (sortBy === 'price-desc') products = [...products].sort((a, b) => b.price - a.price);
+
+        document.getElementById('product-count-badge').textContent = `${products.length} sản phẩm`;
+
+        const user = AuthModule.getCurrentUser();
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+
+        const grid = document.getElementById('products-grid');
+        if (products.length === 0) {
+          grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-sm bg-[#130a2b] rounded-3xl border border-purple-800/30">Không tìm thấy sản phẩm phù hợp.</div>`;
+          return;
+        }
+
+        grid.innerHTML = products.map(p => {
+          const catLabel = p.category === 'dragon' ? '🐉 Rồng Hiếm' : '🧪 Pot & Vật Phẩm';
+          const discountPct = rank.discount;
+          const discountedPrice = Math.round(p.price * (1 - discountPct / 100));
+          const isDaiDe = rank.id === 'daide';
+
+          const priceHtml = discountPct > 0
+            ? `
+              <div class="vip-price-box ${isDaiDe ? 'rank-daide' : ''} rounded-xl px-2.5 py-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs text-slate-400 line-through">${UIHelperModule.formatMoney(p.price)}</span>
+                  <span class="text-base font-black text-emerald-400">${UIHelperModule.formatMoney(discountedPrice)}</span>
+                </div>
+                <span class="inline-block mt-0.5 text-[10px] font-extrabold px-1.5 py-0.2 rounded ${rank.badgeClass}">
+                  ${rank.name} -${discountPct}%
+                </span>
+              </div>
+            `
+            : `<div class="text-lg font-black text-cyan-300">${UIHelperModule.formatMoney(p.price)}</div>`;
+
+          return `
+            <div class="rounded-3xl bg-[#130a2b] border border-purple-700/35 hover:border-purple-500/70 transition overflow-hidden flex flex-col justify-between shadow-xl group">
+              <div>
+                <div class="relative h-40 bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-4 flex items-center justify-center">
+                  <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-pink-600/90 text-white text-[11px] font-bold">
+                    ${catLabel}
+                  </span>
+                  <span class="text-center font-black text-xl sm:text-2xl ${p.color || 'text-white'} group-hover:scale-105 transition-transform px-2">
+                    ${p.badge || p.name}
+                  </span>
+                </div>
+                <div class="p-4 space-y-1.5">
+                  <h3 class="font-extrabold text-base text-white line-clamp-1">${p.name}</h3>
+                  <p class="text-xs text-slate-400 line-clamp-2">${p.desc || ''}</p>
+                </div>
+              </div>
+
+              <div class="px-4 pb-4 pt-2 border-t border-purple-900/40 flex items-center justify-between gap-2">
+                <div>
+                  <span class="text-[10px] font-bold text-slate-400 uppercase block">GIÁ BÁN</span>
+                  ${priceHtml}
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick='CartModule.addProductById("${p.id}")' title="Thêm vào giỏ" class="p-2.5 rounded-xl bg-[#22134a] hover:bg-purple-700/50 border border-purple-600/40 text-purple-200 transition">
+                    🛒
+                  </button>
+                  <button onclick='CartModule.buyProductNow("${p.id}")' class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md transition">
+                    Mua Ngay
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    };
+
+    /* ============================================================
+     * MODULE 5: CartModule - Giỏ hàng đồng bộ & Thanh toán
+     * ============================================================ */
+    const CartModule = {
+      items: [],
+      isCheckingOut: false,
+      currentIdempotencyKey: null,
+
+      async persistCartToCloud() {
+        const user = AuthModule.getCurrentUser();
+        if (!user) return;
+        if (!supabaseClient || String(user.id).startsWith('local_')) {
+          localStorage.setItem('spn_cart_' + user.id, JSON.stringify(this.items));
+          return;
+        }
+        try {
+          await supabaseClient
+            .from('user_carts')
+            .upsert({ user_id: user.id, items: this.items, updated_at: new Date().toISOString() });
+        } catch (_) {}
+      },
+
+      async addProductById(id) {
+        const prod = StorageModule.getProducts().find(p => p.id === id);
+        if (!prod) return;
+        await this.addItem({
+          id: prod.id,
+          name: prod.name,
+          category: prod.category,
+          price: prod.price,
+          qty: 1
+        });
+      },
+
+      async buyProductNow(id) {
+        await this.addProductById(id);
+        this.openCartModal();
+      },
+
+      async addItem(item) {
+        const existing = this.items.find(i => i.id === item.id);
+        if (existing) existing.qty += 1;
+        else this.items.push(item);
+        this.currentIdempotencyKey = crypto.randomUUID();
+        this.updateBadge();
+        await this.persistCartToCloud();
+        UIHelperModule.toast(`Đã thêm "${item.name}" vào giỏ hàng!`, 'success');
+      },
+
+      async removeItem(index) {
+        this.items.splice(index, 1);
+        this.currentIdempotencyKey = crypto.randomUUID();
+        this.updateBadge();
+        await this.persistCartToCloud();
+        this.renderCartModal();
+      },
+
+      updateBadge() {
+        const totalQty = this.items.reduce((sum, i) => sum + i.qty, 0);
+        document.getElementById('cart-badge').textContent = totalQty;
+      },
+
+      openCartModal() {
+        if (!this.currentIdempotencyKey) {
+          this.currentIdempotencyKey = crypto.randomUUID();
+        }
+        this.renderCartModal();
+        UIHelperModule.openModal('cart-modal');
+      },
+
+      renderCartModal() {
+        const listEl = document.getElementById('cart-items-list');
+        const user = AuthModule.getCurrentUser();
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+
+        if (this.items.length === 0) {
+          listEl.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Giỏ hàng đang trống. Hãy chọn dịch vụ bạn muốn mua nhé!</div>`;
+          document.getElementById('cart-vip-percent').textContent = rank.discount + '%';
+          document.getElementById('cart-discount-amount').textContent = '-0đ';
+          document.getElementById('cart-total-price').textContent = '0đ';
+          return;
+        }
+
+        let subtotal = 0;
+        let discountTotal = 0;
+
+        listEl.innerHTML = this.items.map((item, idx) => {
+          const lineTotal = item.price * item.qty;
+          subtotal += lineTotal;
+          const itemDiscount = item.category === 'robux' ? 0 : Math.round(lineTotal * (rank.discount / 100));
+          discountTotal += itemDiscount;
+
+          return `
+            <div class="p-3 rounded-2xl bg-[#0d0622] border border-purple-800/40 flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs font-bold text-white">${item.name} <span class="text-purple-400">x${item.qty}</span></div>
+                <div class="text-xs text-emerald-400 font-semibold mt-0.5">${UIHelperModule.formatMoney(lineTotal)}</div>
+              </div>
+              <button onclick="CartModule.removeItem(${idx})" class="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1">Xóa</button>
+            </div>
+          `;
+        }).join('');
+
+        const finalTotal = Math.max(0, subtotal - discountTotal);
+        document.getElementById('cart-vip-percent').textContent = rank.discount + '%';
+        document.getElementById('cart-discount-amount').textContent = '-' + UIHelperModule.formatMoney(discountTotal);
+        document.getElementById('cart-total-price').textContent = UIHelperModule.formatMoney(finalTotal);
+      },
+
+      async checkout() {
+        if (this.isCheckingOut) return;
+        const user = AuthModule.getCurrentUser();
+        if (!user) {
+          UIHelperModule.toast('Vui lòng đăng nhập để thanh toán!', 'error');
+          AuthModule.openAuthModal('login');
+          return;
+        }
+        if (this.items.length === 0) {
+          UIHelperModule.toast('Giỏ hàng của bạn đang trống!', 'error');
+          return;
+        }
+        const robloxUser = document.getElementById('checkout-roblox-user').value.trim();
+        if (!robloxUser) {
+          UIHelperModule.toast('Vui lòng nhập tên nhân vật Roblox để nhận hàng!', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('checkout-submit-btn');
+        this.isCheckingOut = true;
+        btn.disabled = true;
+        btn.textContent = '⏳ Đang xác thực & trừ số dư...';
+
+        try {
+          if (!supabaseClient || String(user.id).startsWith('local_')) {
+            UIHelperModule.toast('Thanh toán đã khóa khi chưa kết nối Supabase an toàn. Vui lòng thử lại sau.', 'error');
+            return;
+            const rank = UIHelperModule.getUserRank(user.totalSpent);
+            let total = 0;
+            this.items.forEach(i => {
+              const line = i.price * i.qty;
+              const disc = i.category === 'robux' ? 0 : Math.round(line * (rank.discount / 100));
+              total += (line - disc);
+            });
+            if (user.balance < total) {
+              UIHelperModule.toast('Số dư ví không đủ! Vui lòng nạp thêm tiền.', 'error');
+              UIHelperModule.closeModal('cart-modal');
+              UIHelperModule.openTopupModal('qr');
+              return;
+            }
+            user.balance -= total;
+            const localUsers = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+            const uIdx = localUsers.findIndex(u => u.id === user.id);
+            if (uIdx !== -1) {
+              localUsers[uIdx].balance = user.balance;
+              localStorage.setItem('spn_local_users', JSON.stringify(localUsers));
+            }
+            localStorage.removeItem('spn_local_session');
+
+            const orderId = 'ORD-' + Date.now().toString(36).toUpperCase();
+            const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+            orders.unshift({
+              id: orderId,
+              userId: user.id,
+              userName: user.name,
+              robloxUser,
+              items: [...this.items],
+              totalPaid: total,
+              status: 'pending',
+              createdAt: new Date().toLocaleString('vi-VN'),
+              messages: [{ sender: 'system', text: 'Đơn hàng đã được tạo. Nhắn Zalo 0395033213 để giao hàng nhanh!', time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }]
+            });
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+
+            this.items = [];
+            this.updateBadge();
+            await this.persistCartToCloud();
+            AuthModule.syncHeaderUI();
+            UIHelperModule.closeModal('cart-modal');
+            UIHelperModule.toast('🎉 Đặt hàng thành công!', 'success');
+            OrderModule.openOrdersModal(orderId);
+            return;
+          }
+
+          const { data, error } = await supabaseClient.rpc('rpc_checkout_order', {
+            p_roblox_user: robloxUser,
+            p_cart_items: this.items,
+            p_idempotency_key: this.currentIdempotencyKey || crypto.randomUUID()
+          });
+
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            if (error.message.includes('Số dư ví không đủ')) {
+              UIHelperModule.closeModal('cart-modal');
+              UIHelperModule.openTopupModal('qr');
+            }
+            return;
+          }
+
+          this.items = [];
+          this.currentIdempotencyKey = null;
+          this.updateBadge();
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
+          UIHelperModule.closeModal('cart-modal');
+          UIHelperModule.toast('🎉 Đặt hàng thành công! Mở đơn hàng để chat với Shop.', 'success');
+          OrderModule.openOrdersModal(data.order_id);
+        } finally {
+          this.isCheckingOut = false;
+          btn.disabled = false;
+          btn.textContent = '✅ Xác Nhận Thanh Toán Bằng Số Dư';
+        }
+      }
+    };
+
+    /* ============================================================
+     * MODULE 6: TopupModule - Nạp tiền QR & Thẻ cào
+     * ============================================================ */
+    const TopupModule = {
+      isSubmitting: false,
+
+      initTopupView() {
+        const settings = StorageModule.getSettings();
+        const user = AuthModule.getCurrentUser();
+        const qrImg = document.getElementById('topup-qr-image');
+        if (qrImg && settings.qrUrl) qrImg.src = settings.qrUrl;
+        if (user) {
+          document.getElementById('qr-transfer-note').textContent = 'NAP ' + user.email.split('@')[0].toUpperCase();
+        }
+
+        const fees = settings.cardFees;
+        const board = document.getElementById('card-fee-board');
+        const select = document.getElementById('card-type-select');
+
+        board.innerHTML = Object.entries(fees).map(([telco, fee]) => `
+          <div class="p-2 rounded-xl bg-[#0d0622] border border-purple-800/40">
+            <div class="font-bold text-white">${telco}</div>
+            <div class="text-amber-400 font-extrabold">Phí ${fee}%</div>
+          </div>
+        `).join('');
+
+        select.innerHTML = Object.entries(fees).map(([telco, fee]) => `
+          <option value="${telco}">${telco} (Phí ${fee}%)</option>
+        `).join('');
+
+        this.updateCardEstimate();
+        this.renderUserTopupHistory();
+      },
+
+      renderUserTopupHistory() {
+        const box = document.getElementById('user-topups-history');
+        if (!box) return;
+        const user = AuthModule.getCurrentUser();
+        const list = StorageModule.getTopups().filter(t => !user || t.userId === user.id);
+        if (list.length === 0) {
+          box.innerHTML = `<div class="text-slate-400 text-[11px]">Chưa có giao dịch nạp tiền nào.</div>`;
+          return;
+        }
+        const statusMap = {
+          pending: '<span class="text-amber-400 font-bold">Chờ duyệt</span>',
+          approved: '<span class="text-emerald-400 font-bold">Đã cộng tiền</span>',
+          rejected: '<span class="text-rose-400 font-bold">Từ chối</span>'
+        };
+        box.innerHTML = list.slice(0, 10).map(t => `
+          <div class="p-2 rounded-xl bg-[#0d0622] border border-purple-800/30 flex items-center justify-between gap-2">
+            <div>
+              <span class="font-bold text-white">${t.method}</span> •
+              <span class="text-emerald-300">+${UIHelperModule.formatMoney(t.realReceive)}</span>
+            </div>
+            <div>${statusMap[t.status] || t.status}</div>
+          </div>
+        `).join('');
+      },
+
+      switchTab(tab) {
+        const isQr = tab === 'qr';
+        document.getElementById('topup-qr-section').classList.toggle('hidden', !isQr);
+        document.getElementById('topup-card-section').classList.toggle('hidden', isQr);
+        document.getElementById('topup-tab-qr').className = isQr
+          ? 'py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white'
+          : 'py-2.5 rounded-xl text-xs font-bold text-slate-400';
+        document.getElementById('topup-tab-card').className = !isQr
+          ? 'py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white'
+          : 'py-2.5 rounded-xl text-xs font-bold text-slate-400';
+      },
+
+      formatInput(el) {
+        const val = UIHelperModule.parseDots(el.value);
+        el.value = val > 0 ? UIHelperModule.formatDots(val) : '';
+      },
+
+      updateCardEstimate() {
+        const settings = StorageModule.getSettings();
+        const telco = document.getElementById('card-type-select').value;
+        const amount = Number(document.getElementById('card-value-select').value) || 0;
+        const feePct = Number(settings.cardFees[telco]) || 0;
+        const realReceive = Math.round(amount * (1 - feePct / 100));
+        document.getElementById('card-real-receive').textContent = UIHelperModule.formatMoney(realReceive);
+      },
+
+      async submitQR() {
+        if (this.isSubmitting) return;
+        const user = AuthModule.getCurrentUser();
+        if (!user) return;
+        const amount = UIHelperModule.parseDots(document.getElementById('qr-amount-input').value);
+        if (amount < 10000) {
+          UIHelperModule.toast('Số tiền nạp tối thiểu 10.000đ!', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('qr-submit-btn');
+        this.isSubmitting = true;
+        btn.disabled = true;
+
+        try {
+          if (!supabaseClient || String(user.id).startsWith('local_')) {
+            UIHelperModule.toast('Nạp tiền đã khóa khi chưa kết nối Supabase an toàn.', 'error');
+            return;
+            const topups = JSON.parse(localStorage.getItem('spn_local_topups') || '[]');
+            topups.unshift({
+              id: 'TOP-' + Date.now().toString(36).toUpperCase(),
+              userId: user.id,
+              userName: user.name,
+              method: 'Chuyển khoản QR',
+              detail: 'Momo / VietQR 0395033213',
+              amount,
+              realReceive: amount,
+              status: 'pending',
+              createdAt: new Date().toLocaleString('vi-VN')
+            });
+            localStorage.setItem('spn_local_topups', JSON.stringify(topups));
+            document.getElementById('qr-amount-input').value = '';
+            await StorageModule.refreshTopups();
+            UIHelperModule.closeModal('topup-modal');
+            UIHelperModule.toast('✅ Đã gửi yêu cầu nạp QR!', 'success');
+            return;
+          }
+
+          const { error } = await supabaseClient.rpc('rpc_create_topup', {
+            p_method_type: 'qr',
+            p_telco: 'QR',
+            p_amount: amount
+          });
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            return;
+          }
+          document.getElementById('qr-amount-input').value = '';
+          await StorageModule.refreshTopups();
+          UIHelperModule.closeModal('topup-modal');
+          UIHelperModule.toast('✅ Đã gửi yêu cầu nạp QR! Admin sẽ cộng tiền sau ít phút.', 'success');
+        } finally {
+          this.isSubmitting = false;
+          btn.disabled = false;
+        }
+      },
+
+      async submitCard() {
+        if (this.isSubmitting) return;
+        const user = AuthModule.getCurrentUser();
+        if (!user) return;
+        const telco = document.getElementById('card-type-select').value;
+        const amount = Number(document.getElementById('card-value-select').value) || 0;
+        const serial = document.getElementById('card-serial-input').value.trim();
+        const code = document.getElementById('card-code-input').value.trim();
+
+        if (!serial || !code) {
+          UIHelperModule.toast('Vui lòng nhập đầy đủ Serial và Mã thẻ!', 'error');
+          return;
+        }
+
+        const btn = document.getElementById('card-submit-btn');
+        this.isSubmitting = true;
+        btn.disabled = true;
+
+        try {
+          if (!supabaseClient || String(user.id).startsWith('local_')) {
+            UIHelperModule.toast('Nạp tiền đã khóa khi chưa kết nối Supabase an toàn.', 'error');
+            return;
+            const feePct = Number(StorageModule.getSettings().cardFees[telco]) || 0;
+            const realReceive = Math.round(amount * (1 - feePct / 100));
+            const topups = JSON.parse(localStorage.getItem('spn_local_topups') || '[]');
+            topups.unshift({
+              id: 'CARD-' + Date.now().toString(36).toUpperCase(),
+              userId: user.id,
+              userName: user.name,
+              method: 'Thẻ ' + telco,
+              detail: `Seri: ${serial} | Mã: ${code}`,
+              amount,
+              realReceive,
+              status: 'pending',
+              createdAt: new Date().toLocaleString('vi-VN')
+            });
+            localStorage.setItem('spn_local_topups', JSON.stringify(topups));
+            document.getElementById('card-serial-input').value = '';
+            document.getElementById('card-code-input').value = '';
+            await StorageModule.refreshTopups();
+            UIHelperModule.closeModal('topup-modal');
+            UIHelperModule.toast('✅ Đã gửi thẻ cào xét duyệt!', 'success');
+            return;
+          }
+
+          const { error } = await supabaseClient.rpc('rpc_create_topup', {
+            p_method_type: 'card',
+            p_telco: telco,
+            p_amount: amount,
+            p_serial: serial,
+            p_code: code
+          });
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            return;
+          }
+          document.getElementById('card-serial-input').value = '';
+          document.getElementById('card-code-input').value = '';
+          await StorageModule.refreshTopups();
+          UIHelperModule.closeModal('topup-modal');
+          UIHelperModule.toast('✅ Đã gửi thẻ cào! Hệ thống đang chờ Admin duyệt.', 'success');
+        } finally {
+          this.isSubmitting = false;
+          btn.disabled = false;
+        }
+      }
+    };
+
+    /* ============================================================
+     * MODULE 7: OrderModule - Xem đơn hàng & Chat riêng từng đơn
+     * ============================================================ */
+    const OrderModule = {
+      activeOrderId: null,
+
+      async openOrdersModal(preselectOrderId = null) {
+        const user = AuthModule.getCurrentUser();
+        if (!user) {
+          UIHelperModule.toast('Vui lòng đăng nhập để xem đơn hàng!', 'error');
+          AuthModule.openAuthModal('login');
+          return;
+        }
+        await StorageModule.refreshOrders();
+        const orders = StorageModule.getOrders().filter(o => o.userId === user.id);
+        if (preselectOrderId) this.activeOrderId = preselectOrderId;
+        else if (orders.length > 0 && !this.activeOrderId) this.activeOrderId = orders[0].id;
+
+        this.renderUserOrdersList();
+        this.renderChatBox();
+        UIHelperModule.openModal('orders-modal');
+      },
+
+      renderUserOrdersList() {
+        const user = AuthModule.getCurrentUser();
+        const orders = StorageModule.getOrders().filter(o => o.userId === user.id);
+        const listEl = document.getElementById('user-orders-list');
+
+        if (orders.length === 0) {
+          listEl.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">Bạn chưa có đơn hàng nào.</div>`;
+          return;
+        }
+
+        const statusMap = {
+          pending: { text: 'Chờ giao dịch', cls: 'bg-amber-500/20 text-amber-300' },
+          done: { text: 'Hoàn tất', cls: 'bg-emerald-500/20 text-emerald-300' },
+          cancelled: { text: 'Đã hủy / Hoàn tiền', cls: 'bg-rose-500/20 text-rose-300' }
+        };
+
+        listEl.innerHTML = orders.map(o => {
+          const st = statusMap[o.status] || statusMap.pending;
+          const isSelected = o.id === this.activeOrderId;
+          return `
+            <div onclick="OrderModule.selectOrder('${o.id}')" class="cursor-pointer p-3 rounded-2xl border transition ${isSelected ? 'bg-purple-900/40 border-purple-400' : 'bg-[#0d0622] border-purple-800/40 hover:border-purple-600'}">
+              <div class="flex items-center justify-between text-xs font-bold">
+                <span class="text-white">${o.id}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] ${st.cls}">${st.text}</span>
+              </div>
+              <div class="text-[11px] text-slate-300 mt-1 line-clamp-1">${o.items.map(i => i.name).join(', ')}</div>
+              <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
+                <span>Ingame: <strong class="text-purple-300">${o.robloxUser}</strong></span>
+                <span class="font-bold text-emerald-400">${UIHelperModule.formatMoney(o.totalPaid)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      selectOrder(orderId) {
+        this.activeOrderId = orderId;
+        this.renderUserOrdersList();
+        this.renderChatBox();
+      },
+
+      renderChatBox() {
+        const msgBox = document.getElementById('order-chat-messages');
+        const header = document.getElementById('chat-order-header');
+        if (!this.activeOrderId) {
+          header.textContent = 'Chưa chọn đơn hàng';
+          msgBox.innerHTML = '';
+          return;
+        }
+        const order = StorageModule.getOrders().find(o => o.id === this.activeOrderId);
+        if (!order) return;
+
+        header.textContent = `Chat đơn ${order.id} (${order.robloxUser})`;
+        msgBox.innerHTML = (order.messages || []).map(m => {
+          if (m.sender === 'system') {
+            return `<div class="p-2 rounded-xl bg-purple-900/30 border border-purple-700/30 text-purple-200 text-[11px]">🤖 ${m.text}</div>`;
+          }
+          const isMe = m.sender === 'user';
+          return `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+              <div class="px-3 py-2 rounded-2xl max-w-[85%] ${isMe ? 'bg-purple-600 text-white' : 'bg-amber-500/20 border border-amber-500/40 text-amber-200'}">
+                <div class="text-[10px] font-bold opacity-75 mb-0.5">${isMe ? 'Bạn' : '👑 Admin Phạm Nhật'} • ${m.time}</div>
+                <div>${m.text}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        msgBox.scrollTop = msgBox.scrollHeight;
+      },
+
+      async sendChatMessage(e) {
+        e.preventDefault();
+        if (!this.activeOrderId) return;
+        const user = AuthModule.getCurrentUser();
+        if (!user) return;
+        const input = document.getElementById('order-chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        input.value = '';
+        if (!supabaseClient || String(user.id).startsWith('local_')) {
+          const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+          const o = orders.find(x => x.id === this.activeOrderId);
+          if (o) {
+            o.messages = o.messages || [];
+            o.messages.push({ sender: 'user', text, time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) });
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+          }
+          await StorageModule.refreshOrders();
+          this.renderChatBox();
+          return;
+        }
+
+        const { error } = await supabaseClient.from('order_messages').insert({
+          order_id: this.activeOrderId,
+          sender_id: user.id,
+          sender_role: 'user',
+          text
+        });
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        await StorageModule.refreshOrders();
+        this.renderChatBox();
+      }
+    };
+
+    /* ============================================================
+     * MODULE 8: AdminModule - Quản trị Đơn, Nạp, Sản phẩm, Ban Acc, Thuế & QR
+     * ============================================================ */
+    const AdminModule = {
+      currentTab: 'orders',
+      userSearchQuery: '',
+      isBusy: false,
+
+      async openAdminModal() {
+        const user = AuthModule.getCurrentUser();
+        if (!user || user.role !== 'admin' || String(user.email || '').toLowerCase() !== ADMIN_OWNER_EMAIL) {
+          UIHelperModule.toast('Bạn không có quyền truy cập Admin!', 'error');
+          return;
+        }
+        await Promise.all([
+          StorageModule.refreshOrders(),
+          StorageModule.refreshTopups(),
+          StorageModule.refreshAllUsers(),
+          StorageModule.syncPublicData()
+        ]);
+        this.switchTab(this.currentTab);
+        UIHelperModule.openModal('admin-modal');
+      },
+
+      switchTab(tab) {
+        this.currentTab = tab;
+        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+          const active = btn.dataset.admintab === tab;
+          btn.className = active
+            ? 'admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950'
+            : 'admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300 hover:text-white';
+        });
+
+        const area = document.getElementById('admin-content-area');
+        if (tab === 'orders') this.renderOrdersAdmin(area);
+        else if (tab === 'topups') this.renderTopupsAdmin(area);
+        else if (tab === 'products') this.renderProductsAdmin(area);
+        else if (tab === 'users') this.renderUsersAdmin(area);
+        else if (tab === 'settings') this.renderSettingsAdmin(area);
+      },
+
+      renderOrdersAdmin(area) {
+        const orders = StorageModule.getOrders();
+        if (orders.length === 0) {
+          area.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">Chưa có đơn hàng nào trong hệ thống.</div>`;
+          return;
+        }
+        area.innerHTML = orders.map(o => `
+          <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span class="text-xs font-black text-amber-400">${o.id}</span> •
+                <span class="text-xs font-bold text-white">${o.userName}</span> •
+                <span class="text-xs text-cyan-300">Roblox: ${o.robloxUser}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-emerald-400">${UIHelperModule.formatMoney(o.totalPaid)}</span>
+                ${o.status === 'pending' ? `
+                  <button onclick="AdminModule.completeOrder('${o.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">✅ Duyệt Hoàn Tất</button>
+                  <button onclick="AdminModule.cancelOrder('${o.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">✕ Hủy &amp; Hoàn Tiền</button>
+                ` : `<span class="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-bold uppercase">${o.status}</span>`}
+              </div>
+            </div>
+            <div class="text-xs text-slate-300">Sản phẩm: ${o.items.map(i => `${i.name} (x${i.qty})`).join(', ')}</div>
+
+            <div class="bg-[#150c30] rounded-xl p-2.5 space-y-1.5 max-h-32 overflow-y-auto text-[11px]">
+              ${(o.messages || []).map(m => `<div><strong class="${m.sender === 'admin' ? 'text-amber-400' : 'text-purple-300'}">${m.sender === 'admin' ? 'Admin' : m.sender === 'user' ? 'Khách' : 'Hệ thống'}:</strong> ${m.text}</div>`).join('')}
+            </div>
+            <div class="flex gap-2">
+              <input id="admin-reply-${o.id}" type="text" placeholder="Nhắn phản hồi cho khách đơn ${o.id}..." class="flex-1 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-1.5 text-xs text-white" />
+              <button onclick="AdminModule.replyOrder('${o.id}')" class="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs">Gửi</button>
+            </div>
+          </div>
+        `).join('');
+      },
+
+      async completeOrder(orderId) {
+        if (this.isBusy) return;
+        this.isBusy = true;
+        try {
+          const curUser = AuthModule.getCurrentUser();
+          if (!supabaseClient || String(curUser?.id).startsWith('local_')) {
+            const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+            const o = orders.find(x => x.id === orderId);
+            if (!o || o.status !== 'pending') return;
+            o.status = 'done';
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+
+            const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+            const u = users.find(x => x.id === o.userId);
+            if (u) {
+              const oldSpent = u.totalSpent || 0;
+              u.totalSpent = oldSpent + o.totalPaid;
+              localStorage.setItem('spn_local_users', JSON.stringify(users));
+              if (u.id === curUser.id) {
+                curUser.totalSpent = u.totalSpent;
+                localStorage.removeItem('spn_local_session');
+                const oldRank = UIHelperModule.getUserRank(oldSpent);
+                const newRank = UIHelperModule.getUserRank(u.totalSpent);
+                if (newRank.minSpent > oldRank.minSpent) {
+                  UIHelperModule.triggerRankUpCelebration(oldRank, newRank);
+                }
+              }
+            }
+            await StorageModule.syncUserData();
+            AuthModule.syncHeaderUI();
+            CatalogModule.renderProducts();
+            UIHelperModule.toast('✅ Đã duyệt hoàn tất đơn & cộng tích lũy VIP!', 'success');
+            this.switchTab('orders');
+            return;
+          }
+
+          const { data, error } = await supabaseClient.rpc('rpc_admin_process_order', {
+            p_order_id: orderId,
+            p_action: 'complete'
+          });
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            return;
+          }
+
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
+          CatalogModule.renderProducts();
+
+          const order = StorageModule.getOrders().find(o => o.id === orderId);
+          if (order && order.userId === AuthModule.getCurrentUser()?.id && data) {
+            const oldRank = UIHelperModule.getUserRank(data.old_spent);
+            const newRank = UIHelperModule.getUserRank(data.new_spent);
+            if (newRank.minSpent > oldRank.minSpent) {
+              UIHelperModule.triggerRankUpCelebration(oldRank, newRank);
+            }
+          }
+
+          UIHelperModule.toast('✅ Đã duyệt hoàn tất đơn & cộng tích lũy VIP cho khách!', 'success');
+          this.switchTab('orders');
+        } finally {
+          this.isBusy = false;
+        }
+      },
+
+      async cancelOrder(orderId) {
+        if (this.isBusy) return;
+        this.isBusy = true;
+        try {
+          const curUser = AuthModule.getCurrentUser();
+          if (!supabaseClient || String(curUser?.id).startsWith('local_')) {
+            const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+            const o = orders.find(x => x.id === orderId);
+            if (!o || o.status !== 'pending') return;
+            o.status = 'cancelled';
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+
+            const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+            const u = users.find(x => x.id === o.userId);
+            if (u) {
+              u.balance = (u.balance || 0) + o.totalPaid;
+              localStorage.setItem('spn_local_users', JSON.stringify(users));
+              if (u.id === curUser.id) {
+                curUser.balance = u.balance;
+                localStorage.removeItem('spn_local_session');
+              }
+            }
+            await StorageModule.syncUserData();
+            AuthModule.syncHeaderUI();
+            UIHelperModule.toast('Đã hủy đơn & hoàn tiền lại cho khách.', 'info');
+            this.switchTab('orders');
+            return;
+          }
+
+          const { error } = await supabaseClient.rpc('rpc_admin_process_order', {
+            p_order_id: orderId,
+            p_action: 'cancel'
+          });
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            return;
+          }
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
+          UIHelperModule.toast('Đã hủy đơn & hoàn tiền lại cho khách.', 'info');
+          this.switchTab('orders');
+        } finally {
+          this.isBusy = false;
+        }
+      },
+
+      async replyOrder(orderId) {
+        const input = document.getElementById('admin-reply-' + orderId);
+        const text = input?.value.trim();
+        const user = AuthModule.getCurrentUser();
+        if (!text || !user) return;
+
+        input.value = '';
+        if (!supabaseClient || String(user.id).startsWith('local_')) {
+          const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
+          const o = orders.find(x => x.id === orderId);
+          if (o) {
+            o.messages = o.messages || [];
+            o.messages.push({ sender: 'admin', text, time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) });
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+          }
+          await StorageModule.refreshOrders();
+          this.switchTab('orders');
+          return;
+        }
+
+        const { error } = await supabaseClient.from('order_messages').insert({
+          order_id: orderId,
+          sender_id: user.id,
+          sender_role: 'admin',
+          text
+        });
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        await StorageModule.refreshOrders();
+        this.switchTab('orders');
+      },
+
+      renderTopupsAdmin(area) {
+        const topups = StorageModule.getTopups();
+        if (topups.length === 0) {
+          area.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">Chưa có yêu cầu nạp tiền nào.</div>`;
+          return;
+        }
+        area.innerHTML = topups.map(t => `
+          <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 flex flex-wrap items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="text-xs font-black text-white">${t.id} • <span class="text-purple-300">${t.userName}</span></div>
+              <div class="text-xs text-amber-300">${t.method} — ${t.detail}</div>
+              <div class="text-xs text-slate-400">Mệnh giá: ${UIHelperModule.formatMoney(t.amount)} • Thực nhận: <strong class="text-emerald-400">${UIHelperModule.formatMoney(t.realReceive)}</strong></div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${t.status === 'pending' ? `
+                <button onclick="AdminModule.approveTopup('${t.id}', true)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">✅ Duyệt Cộng Tiền</button>
+                <button onclick="AdminModule.approveTopup('${t.id}', false)" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">✕ Từ Chối</button>
+              ` : `<span class="px-3 py-1 rounded-xl bg-white/10 text-xs font-bold uppercase">${t.status}</span>`}
+            </div>
+          </div>
+        `).join('');
+      },
+
+      async approveTopup(topupId, isApprove) {
+        if (this.isBusy) return;
+        this.isBusy = true;
+        try {
+          const curUser = AuthModule.getCurrentUser();
+          if (!supabaseClient || String(curUser?.id).startsWith('local_')) {
+            UIHelperModule.toast('Duyệt nạp tiền đã khóa: cần Supabase và tài khoản Admin xác thực.', 'error');
+            return;
+            const topups = JSON.parse(localStorage.getItem('spn_local_topups') || '[]');
+            const t = topups.find(x => x.id === topupId);
+            if (!t || t.status !== 'pending') return;
+            t.status = isApprove ? 'approved' : 'rejected';
+            localStorage.setItem('spn_local_topups', JSON.stringify(topups));
+
+            if (isApprove) {
+              const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+              const u = users.find(x => x.id === t.userId);
+              if (u) {
+                u.balance = (u.balance || 0) + t.realReceive;
+                localStorage.setItem('spn_local_users', JSON.stringify(users));
+                if (u.id === curUser.id) {
+                  curUser.balance = u.balance;
+                  localStorage.removeItem('spn_local_session');
+                }
+              }
+            }
+            await StorageModule.syncUserData();
+            AuthModule.syncHeaderUI();
+            UIHelperModule.toast(isApprove ? '✅ Đã duyệt nạp & cộng tiền vào ví!' : 'Đã từ chối yêu cầu nạp tiền.', isApprove ? 'success' : 'info');
+            this.switchTab('topups');
+            return;
+          }
+
+          const { error } = await supabaseClient.rpc('rpc_admin_process_topup', {
+            p_topup_id: topupId,
+            p_approve: isApprove
+          });
+          if (error) {
+            UIHelperModule.toast(error.message, 'error');
+            return;
+          }
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
+          UIHelperModule.toast(isApprove ? '✅ Đã duyệt nạp & cộng COIN vào ví khách!' : 'Đã từ chối yêu cầu nạp tiền.', isApprove ? 'success' : 'info');
+          this.switchTab('topups');
+        } finally {
+          this.isBusy = false;
+        }
+      },
+
+      renderProductsAdmin(area) {
+        const products = StorageModule.getProducts();
+        area.innerHTML = `
+          <form onsubmit="AdminModule.addNewProduct(event)" class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <input id="new-prod-name" type="text" required placeholder="Tên Rồng / Pot..." class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+            <select id="new-prod-cat" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white">
+              <option value="dragon">🐉 Rồng Hiếm</option>
+              <option value="pot">🧪 Pot & Vật Phẩm</option>
+            </select>
+            <input id="new-prod-price" type="text" inputmode="numeric" oninput="TopupModule.formatInput(this)" required placeholder="Giá bán (VD: 250.000)" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+            <button type="submit" class="rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2">+ Thêm Sản Phẩm</button>
+            <input id="new-prod-desc" type="text" required placeholder="Mô tả chi tiết (Full Mut, Leg Color...)" class="sm:col-span-4 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+          </form>
+
+          <div class="space-y-2">
+            ${products.map(p => `
+              <div class="p-3 rounded-2xl bg-[#0d0622] border border-purple-800/40 flex items-center justify-between gap-2 text-xs">
+                <div>
+                  <strong class="text-white">${p.name}</strong>
+                  <span class="text-emerald-400 font-bold ml-2">${UIHelperModule.formatMoney(p.price)}</span>
+                </div>
+                <button onclick="AdminModule.deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white font-bold">Xóa</button>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      },
+
+      async addNewProduct(e) {
+        e.preventDefault();
+        const name = document.getElementById('new-prod-name').value.trim();
+        const category = document.getElementById('new-prod-cat').value;
+        const price = UIHelperModule.parseDots(document.getElementById('new-prod-price').value);
+        const desc = document.getElementById('new-prod-desc').value.trim();
+        if (!name || price <= 0) return;
+
+        const newItem = {
+          id: 'p_' + Date.now(),
+          name,
+          category,
+          price,
+          desc,
+          badge: name.slice(0, 18),
+          color: 'text-amber-300'
+        };
+
+        if (!supabaseClient) {
+          StorageModule.state.products.unshift(newItem);
+          localStorage.setItem('spn_local_products', JSON.stringify(StorageModule.state.products));
+          CatalogModule.renderProducts();
+          UIHelperModule.toast('Đã đăng bán sản phẩm mới!', 'success');
+          this.switchTab('products');
+          return;
+        }
+
+        const { error } = await supabaseClient.from('products').insert({
+          id: newItem.id,
+          name,
+          category,
+          price,
+          description: desc,
+          badge: newItem.badge,
+          color: 'text-amber-300',
+          active: true
+        });
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        await StorageModule.syncPublicData();
+        CatalogModule.renderProducts();
+        UIHelperModule.toast('Đã đăng bán sản phẩm mới!', 'success');
+        this.switchTab('products');
+      },
+
+      async deleteProduct(id) {
+        if (!supabaseClient) {
+          StorageModule.state.products = StorageModule.state.products.filter(p => p.id !== id);
+          localStorage.setItem('spn_local_products', JSON.stringify(StorageModule.state.products));
+          CatalogModule.renderProducts();
+          this.switchTab('products');
+          return;
+        }
+        const { error } = await supabaseClient.from('products').update({ active: false }).eq('id', id);
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        await StorageModule.syncPublicData();
+        CatalogModule.renderProducts();
+        this.switchTab('products');
+      },
+
+      renderUsersAdmin(area) {
+        const users = StorageModule.getUsers();
+        const q = this.userSearchQuery.toLowerCase();
+        const filtered = users.filter(u =>
+          (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+        );
+
+        area.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <input
+              type="text"
+              value="${this.userSearchQuery}"
+              oninput="AdminModule.searchUsers(this.value)"
+              placeholder="🔍 Tìm kiếm tài khoản theo tên hoặc email..."
+              class="flex-1 bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2 text-xs text-white"
+            />
+            <span class="text-xs font-bold text-purple-300">Tổng: ${filtered.length} tài khoản</span>
+          </div>
+
+          <div class="space-y-2.5">
+            ${filtered.map(u => {
+              const rank = UIHelperModule.getUserRank(u.totalSpent);
+              const isAdmin = u.role === 'admin';
+              return `
+                <div class="p-3.5 rounded-2xl bg-[#0d0622] border ${u.banned ? 'border-rose-500/60 bg-rose-950/20' : 'border-purple-800/40'} flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div class="space-y-0.5">
+                    <div class="flex items-center gap-2">
+                      <strong class="text-white">${u.name}</strong>
+                      <span class="px-2 py-0.5 rounded text-[10px] ${rank.badgeClass}">${rank.name}</span>
+                      ${isAdmin ? '<span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-black text-[10px]">ADMIN</span>' : ''}
+                      ${u.banned ? '<span class="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">ĐÃ BỊ BAN</span>' : ''}
+                    </div>
+                    <div class="text-slate-400">TK: <span class="text-slate-200">${u.email}</span> • Ví: <strong class="text-emerald-400">${UIHelperModule.formatMoney(u.balance)}</strong> • Đã tiêu: ${UIHelperModule.formatMoney(u.totalSpent)}</div>
+                  </div>
+                  ${!isAdmin ? `
+                    <button onclick="AdminModule.toggleBanUser('${u.id}')" class="px-3 py-1.5 rounded-xl font-bold text-xs ${u.banned ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}">
+                      ${u.banned ? '🔓 Mở Ban Acc' : '🚫 Ban Acc'}
+                    </button>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      },
+
+      searchUsers(val) {
+        this.userSearchQuery = val;
+        this.renderUsersAdmin(document.getElementById('admin-content-area'));
+      },
+
+      async toggleBanUser(userId) {
+        if (!supabaseClient || String(userId).startsWith('local_')) {
+          const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+          const u = users.find(x => x.id === userId);
+          if (u) {
+            u.banned = !u.banned;
+            localStorage.setItem('spn_local_users', JSON.stringify(users));
+            await StorageModule.refreshAllUsers();
+            UIHelperModule.toast(u.banned ? '🚫 Đã khóa tài khoản!' : '🔓 Đã mở khóa tài khoản!', 'info');
+            this.switchTab('users');
+          }
+          return;
+        }
+        const { data, error } = await supabaseClient.rpc('rpc_admin_toggle_ban', {
+          p_target_user_id: userId
+        });
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        await StorageModule.refreshAllUsers();
+        UIHelperModule.toast(data.banned ? '🚫 Đã khóa tài khoản thành viên!' : '🔓 Đã mở khóa tài khoản!', 'info');
+        this.switchTab('users');
+      },
+
+      renderSettingsAdmin(area) {
+        const s = StorageModule.getSettings();
+        area.innerHTML = `
+          <form onsubmit="AdminModule.saveAdminSettings(event)" class="space-y-5">
+            <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-300">Số Coin nhận được cho mỗi 10.000đ</label>
+                <input id="set-coin-rate" type="number" required value="${s.coinPer10k}" class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-slate-300">Số Robux nhận được cho mỗi 10.000đ</label>
+                <input id="set-robux-rate" type="number" required value="${s.robuxPer10k}" class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 space-y-3">
+              <h4 class="text-xs font-black text-amber-400 uppercase">⚙️ Tùy Chỉnh Thuế / Chiết Khấu (%) Thẻ Cào</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                ${Object.entries(s.cardFees).map(([telco, fee]) => `
+                  <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-300">${telco} (%)</label>
+                    <input id="fee-${telco}" type="number" step="0.1" min="0" max="90" required value="${fee}" class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs font-bold text-white" />
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 space-y-3">
+              <h4 class="text-xs font-black text-cyan-400 uppercase">🖼️ Cập Nhật Ảnh Mã QR Chuyển Khoản (Link HTTPS)</h4>
+              <input id="set-qr-url" type="url" oninput="document.getElementById('admin-qr-preview').src = this.value" required value="${s.qrUrl}" placeholder="https://..." class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+              <div class="flex items-center gap-4">
+                <img id="admin-qr-preview" src="${s.qrUrl}" onerror="this.src='https://placehold.co/120x120/1e1b4b/e9d5ff?text=QR+Preview'" class="w-24 h-24 rounded-xl bg-white p-1.5 object-contain" />
+                <span class="text-[11px] text-slate-400">Xem trước ảnh QR trực tiếp. Chỉ chấp nhận đường dẫn bắt đầu bằng <strong class="text-white">https://</strong>.</span>
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg">
+              💾 Lưu Toàn Bộ Cấu Hình Hệ Thống
+            </button>
+          </form>
+        `;
+      },
+
+      async saveAdminSettings(e) {
+        e.preventDefault();
+        const coinPer10k = Number(document.getElementById('set-coin-rate').value) || 100000;
+        const robuxPer10k = Number(document.getElementById('set-robux-rate').value) || 80;
+        const qrUrl = document.getElementById('set-qr-url').value.trim();
+
+        if (!qrUrl.startsWith('https://')) {
+          UIHelperModule.toast('Link ảnh QR bắt buộc phải dùng giao thức https://!', 'error');
+          return;
+        }
+
+        const current = StorageModule.getSettings();
+        const updatedFees = {};
+        for (const telco of Object.keys(current.cardFees)) {
+          updatedFees[telco] = parseFloat(document.getElementById('fee-' + telco).value) || 0;
+        }
+
+        if (!supabaseClient) {
+          StorageModule.state.settings = { coinPer10k, robuxPer10k, qrUrl, cardFees: updatedFees };
+          localStorage.setItem('spn_local_settings', JSON.stringify(StorageModule.state.settings));
+          CatalogModule.renderProducts();
+          UIHelperModule.toast('✅ Đã lưu cấu hình hệ thống!', 'success');
+          return;
+        }
+
+        const { error } = await supabaseClient
+          .from('shop_settings')
+          .update({
+            coin_per_10k: coinPer10k,
+            robux_per_10k: robuxPer10k,
+            qr_url: qrUrl,
+            card_fees: updatedFees,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 1);
+
+        if (error) {
+          UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+
+        await StorageModule.syncPublicData();
+        CatalogModule.renderProducts();
+        UIHelperModule.toast('✅ Đã lưu cấu hình Tỷ giá, Thuế thẻ cào & QR!', 'success');
+      }
+    };
+
+    /* ============================================================
+     * KHỞI CHẠY ỨNG DỤNG & RỒNG FULONG KHI TẢI TRANG
+     * ============================================================ */
+    window.addEventListener('DOMContentLoaded', async () => {
+      FulongMascotModule.init();
+      await StorageModule.syncPublicData();
+      await StorageModule.syncUserData();
+      AuthModule.syncHeaderUI();
+      CatalogModule.setCategory('all');
+
+      supabaseClient?.auth.onAuthStateChange(async (event) => {
+        if (event === 'SIGNED_OUT') {
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
+          CatalogModule.renderProducts();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
