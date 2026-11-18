@@ -788,11 +788,10 @@
      * MODULE 0: FulongMascotModule - Rồng Thiên Fulong Bay Linh Động
      * ============================================================ */
     const FulongMascotModule = {
-      enabled: localStorage.getItem('spn_fulong_enabled') !== 'false',
+      enabled: true, // Moi lan vao website deu bat Fulong mac dinh; co the tat trong phien hien tai.
 
       toggle() {
         this.enabled = !this.enabled;
-        localStorage.setItem('spn_fulong_enabled', this.enabled ? 'true' : 'false');
         this.syncUI();
         window.dispatchEvent(new Event('resize'));
       },
@@ -2870,7 +2869,8 @@
               
               <input id="inv-search" oninput="AdminModule.renderInventoryCards()" placeholder="Tìm tên / URL..." class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
             </div>
-            <textarea id="inv-bulk-urls" rows="5" placeholder="Dán hàng trăm link ảnh, mỗi dòng 1 link HTTPS..." class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white resize-y"></textarea>
+            <textarea id="inv-bulk-urls" rows="5" oninput="AdminModule.updateBulkUrlCount()" placeholder="Dán hàng trăm link ảnh, mỗi dòng 1 link HTTPS..." class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white resize-y"></textarea>
+            <div id="inv-link-count" class="text-xs text-cyan-200" aria-live="polite">0 link • hợp lệ 0 • trùng 0 • lỗi 0</div>
             <div class="flex flex-wrap gap-2"><button type="button" onclick="AdminModule.importInventoryUrls()" class="rounded-xl bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2">Nhập link vào kho</button><button type="button" onclick="AdminModule.clearInventoryInput()" class="rounded-xl bg-slate-700 text-white font-bold text-xs px-3 py-2">Xóa ô nhập</button><span id="inv-import-msg" class="text-xs text-slate-400 self-center"></span></div>
             <div id="inv-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div><div id="inv-pagination" class="flex justify-center gap-2"></div>
           </section>
@@ -2888,6 +2888,7 @@
           </div>
         `;
         this.renderInventoryCards();
+        this.updateBulkUrlCount();
       },
 
       inventoryPage: 0,
@@ -2895,14 +2896,25 @@
       inventoryEsc(v) { return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); },
       getInventory() { try { return JSON.parse(localStorage.getItem('spn_image_inventory') || '[]'); } catch { return []; } },
       saveInventory(items) { localStorage.setItem('spn_image_inventory', JSON.stringify(items)); },
+      updateBulkUrlCount() {
+        const box = document.getElementById('inv-bulk-urls');
+        const out = document.getElementById('inv-link-count');
+        if (!box || !out) return;
+        const lines = box.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+        const valid = lines.filter(v => { try { const u = new URL(v); return u.protocol === 'https:'; } catch { return false; } });
+        const unique = new Set(valid);
+        const duplicate = valid.length - unique.size;
+        const invalid = lines.length - valid.length;
+        out.textContent = `${lines.length} link • hợp lệ ${unique.size} • trùng ${duplicate} • lỗi ${invalid}`;
+      },
       importInventoryUrls() {
         const box = document.getElementById('inv-bulk-urls'); const category = document.getElementById('inv-category')?.value || 'dragon'; if (!box) return;
         const raw = box.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean); const existing = this.getInventory(); const seen = new Set(existing.map(x => x.url));
         const valid = raw.filter(u => /^https:\/\//i.test(u)); const invalid = raw.length-valid.length; let added=0, dup=0;
         valid.forEach(url => { if (seen.has(url)) { dup++; return; } seen.add(url); existing.unshift({id:'inv_'+Date.now()+Math.random().toString(36).slice(2,8), url, category, name:'', description:'', price:'', status:'stored', createdAt:Date.now()}); added++; });
-        this.saveInventory(existing); box.value=''; this.inventoryPage=0; const msg=document.getElementById('inv-import-msg'); if(msg) msg.textContent=`Đã thêm ${added} ảnh • trùng ${dup} • link lỗi ${invalid}`; this.renderInventoryCards();
+        this.saveInventory(existing); box.value=''; this.updateBulkUrlCount(); this.inventoryPage=0; const msg=document.getElementById('inv-import-msg'); if(msg) msg.textContent=`Đã thêm ${added} ảnh • trùng ${dup} • link lỗi ${invalid}`; this.renderInventoryCards();
       },
-      clearInventoryInput() { const box=document.getElementById('inv-bulk-urls'); if(box) box.value=''; },
+      clearInventoryInput() { const box=document.getElementById('inv-bulk-urls'); if(box) box.value=''; this.updateBulkUrlCount(); },
       renderInventoryCards() {
         const host=document.getElementById('inv-cards'); if(!host) return; const all=this.getInventory(); const category=document.getElementById('inv-category')?.value || 'dragon'; const filter='all'; const query=(document.getElementById('inv-search')?.value || '').trim().toLowerCase();
         const items=all.filter(x=>x.category===category && (filter==='all'||x.status===filter) && (!query||[x.name,x.url,x.description].some(v=>String(v||'').toLowerCase().includes(query)))); const summary=document.getElementById('inv-summary'); if(summary) summary.textContent=`${all.filter(x=>x.category===category).length} ảnh trong kho`;
