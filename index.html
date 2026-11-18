@@ -1308,11 +1308,12 @@
           this.state.allUsers = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
           return;
         }
-        const { data: usersData } = await supabaseClient
+        const { data: usersData, error: usersError } = await supabaseClient
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false });
 
+        if (usersError) { console.warn('Admin users list failed (check profiles SELECT RLS):', usersError); UIHelperModule.toast('Không tải được danh sách thành viên. Kiểm tra quyền SELECT profiles/RLS.', 'error'); return; }
         if (usersData) {
           this.state.allUsers = usersData.map(u => ({
             id: u.id,
@@ -1836,11 +1837,11 @@
               <div>
                 <div class="relative h-40 bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-4 flex items-center justify-center">
                   ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-3" onerror="this.onerror=null;this.style.display='none';this.parentElement.querySelector('.product-image-fallback')?.classList.remove('hidden')">` : ''}
-                  ${!p.imageUrl ? `<div class="product-image-fallback text-4xl text-purple-300/70" aria-label="Chưa có ảnh">🖼️</div>` : `<div class="product-image-fallback hidden text-4xl text-purple-300/70" aria-label="Ảnh lỗi">🖼️</div>`}
+                  ${!p.imageUrl ? `<div class="product-image-fallback text-4xl text-purple-300/70" aria-label="Chưa có ảnh">🖼️</div>` : `<div class="product-image-fallback hidden flex flex-col items-center justify-center gap-2 text-purple-300/80" aria-label="Ảnh lỗi"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">Ảnh không tải được</span></div>`}
                   <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-pink-600/90 text-white text-[11px] font-bold">
                     ${catLabel}
                   </span>
-                  ${!p.imageUrl ? `<span class="text-center font-black text-xl sm:text-2xl ${p.color || 'text-white'} group-hover:scale-105 transition-transform px-2">${p.badge || p.name}</span>` : ''}
+                  ${!p.imageUrl ? `<div class="product-image-fallback flex flex-col items-center justify-center gap-2 text-purple-300/80"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">Chưa có ảnh</span></div>` : ''}
                 </div>
                 <div class="p-4 space-y-1.5">
                   <h3 class="font-extrabold text-base text-white line-clamp-1">${p.name}</h3>
@@ -2460,7 +2461,7 @@
         if (tab === 'orders') this.renderOrdersAdmin(area);
         else if (tab === 'topups') this.renderTopupsAdmin(area);
         else if (tab === 'products') this.renderProductsAdmin(area);
-        else if (tab === 'users') this.renderUsersAdmin(area);
+        else if (tab === 'users') { StorageModule.refreshAllUsers().then(() => this.renderUsersAdmin(area)); this.renderUsersAdmin(area); }
         else if (tab === 'settings') this.renderSettingsAdmin(area);
       },
 
@@ -2837,7 +2838,6 @@ https://.../image3.webp" oninput="AdminModule.updateBatchImageCount()" class="sm
         }
 
         const { error } = await supabaseClient.from('products').insert({
-          id: newItem.id,
           name,
           category,
           price,
@@ -2885,7 +2885,7 @@ https://.../image3.webp" oninput="AdminModule.updateBatchImageCount()" class="sm
         const users = StorageModule.getUsers();
         const q = this.userSearchQuery.toLowerCase();
         const filtered = users.filter(u =>
-          (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+          (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || String(u.id || '').toLowerCase().includes(q)
         );
 
         area.innerHTML = `
