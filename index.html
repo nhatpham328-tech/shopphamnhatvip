@@ -2717,14 +2717,19 @@
         }
       },
 
-      renderProductsAdmin(area) {
-        const products = StorageModule.getProducts();
+      async renderProductsAdmin(area) {
+        // Admin fetches all product rows (including inactive/broken-image rows) so they remain manageable.
+        let products = StorageModule.getProducts();
+        if (supabaseClient && StorageModule.state.profile?.role === 'admin') {
+          const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+          if (!error && data) products = data.map(p => ({ id:p.id, name:p.name||'(Chưa có tên)', category:p.category, price:Number(p.price)||0, desc:p.description||'', badge:p.badge, color:p.color, imageUrl:p.image_url||p.imageUrl||p.image||p.imageURL||p.photo_url||'', active:p.active !== false }));
+          else if (error) UIHelperModule.toast('Không tải được toàn bộ sản phẩm Admin: '+error.message, 'error');
+        }
         area.innerHTML = `
           <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 text-sm text-slate-300">
             <strong class="text-amber-300">Đăng sản phẩm từ Kho ảnh</strong><br>
-            Để tránh sản phẩm bị thiếu ảnh, hãy nhập URL vào Kho ảnh bên dưới, chỉnh tên/mô tả/giá trên thẻ ảnh rồi chọn <b>Đăng bán</b>. Form thêm sản phẩm/ảnh cũ đã được bỏ khỏi giao diện Admin.
+            Nhập ảnh vào Kho, chỉnh tên/mô tả/giá rồi chọn Đăng bán. Danh sách bên dưới tải cả sản phẩm ẩn để Admin có thể quản lý.
           </div>
-
           <section class="p-4 rounded-2xl bg-[#0d0622] border border-amber-500/30 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-sm font-black text-amber-300">📦 KHO ẢNH HÀNG LOẠT (Rồng / POT)</h3><span id="inv-summary" class="text-xs text-slate-400"></span></div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -2736,16 +2741,15 @@
             <div class="flex flex-wrap gap-2"><button type="button" onclick="AdminModule.importInventoryUrls()" class="rounded-xl bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2">Nhập link vào kho</button><button type="button" onclick="AdminModule.clearInventoryInput()" class="rounded-xl bg-slate-700 text-white font-bold text-xs px-3 py-2">Xóa ô nhập</button><span id="inv-import-msg" class="text-xs text-slate-400 self-center"></span></div>
             <div id="inv-cards" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div><div id="inv-pagination" class="flex justify-center gap-2"></div>
           </section>
-
+          <h3 class="text-sm font-black text-white mt-4">Sản phẩm trong Database (${products.length})</h3>
           <div class="space-y-2">
             ${products.map(p => `
               <div class="p-3 rounded-2xl bg-[#0d0622] border border-purple-800/40 flex items-center justify-between gap-2 text-xs">
                 <div class="flex items-center gap-2 min-w-0">
-                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="" class="w-12 h-12 rounded-lg object-contain bg-[#160d33]" onerror="this.style.display='none'">` : ''}
-                  <div><strong class="text-white">${p.name}</strong>
-                  <span class="text-emerald-400 font-bold ml-2">${UIHelperModule.formatMoney(p.price)}</span></div>
+                  ${p.imageUrl ? `<img src="${this.inventoryEsc(p.imageUrl)}" alt="" class="w-12 h-12 rounded-lg object-contain bg-[#160d33]" onerror="this.outerHTML='<div class=\'w-12 h-12 rounded-lg bg-rose-900/40 text-[9px] flex items-center justify-center text-rose-300\'>Ảnh lỗi</div>'">` : `<div class="w-12 h-12 rounded-lg bg-rose-900/40 text-[9px] flex items-center justify-center text-rose-300">Thiếu ảnh</div>`}
+                  <div class="min-w-0"><strong class="text-white">${this.inventoryEsc(p.name)}</strong><span class="text-emerald-400 font-bold ml-2">${UIHelperModule.formatMoney(p.price)}</span><div class="text-slate-400">${p.active===false?'Đã ẩn / inactive':'Đang bán'} • ID: ${this.inventoryEsc(p.id)}</div></div>
                 </div>
-                <button onclick="AdminModule.deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white font-bold">Xóa</button>
+                <button onclick="AdminModule.deleteProduct('${this.inventoryEsc(p.id)}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white font-bold">Xóa/Ẩn</button>
               </div>
             `).join('')}
           </div>
@@ -2853,14 +2857,8 @@
           return;
         }
         const { data: deletedRows, error } = await supabaseClient.from('products').update({ active: false }).eq('id', id).select('id');
-        if (error) {
-          UIHelperModule.toast(error.message, 'error');
-          return;
-        }
-        if (!deletedRows || deletedRows.length === 0) {
-          UIHelperModule.toast('Không xóa được sản phẩm: quyền database/RLS từ chối hoặc sản phẩm không tồn tại.', 'error');
-          return;
-        }
+        if (error) { UIHelperModule.toast('Không thể ẩn/xóa sản phẩm: '+error.message, 'error'); return; }
+        if (!deletedRows || deletedRows.length === 0) { UIHelperModule.toast('Không thao tác được: không tìm thấy sản phẩm hoặc Database/RLS chặn cập nhật.', 'error'); return; }
         await StorageModule.syncPublicData();
         CatalogModule.renderProducts();
         this.switchTab('products');
