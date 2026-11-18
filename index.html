@@ -23,6 +23,7 @@
       height: 100vh;
       pointer-events: none;
       z-index: 45;
+      will-change: transform;
     }
 
     /* Toàn bộ giao diện chính nằm dưới lớp rồng bay (z-index: 45) và dưới thanh điều hướng */
@@ -107,7 +108,6 @@
     @media (max-width: 640px) {
       html, body { width:100%; max-width:100%; overflow-x:hidden; }
       body { -webkit-text-size-adjust:100%; }
-      #fulong-mascot-canvas { display:none !important; }
       header { position:sticky; top:0; }
       header > div:first-child {
         min-height:58px !important; height:auto !important;
@@ -118,7 +118,8 @@
       header > div:first-child > a > div:first-child { width:34px !important; height:34px !important; border-radius:12px !important; }
       header > div:first-child > a span { font-size:11px !important; letter-spacing:-.025em !important; white-space:nowrap; }
       header > div:first-child > div:last-child { flex:0 0 auto; gap:5px !important; }
-      #fulong-toggle-btn { display:none !important; }
+      #fulong-toggle-btn { display:flex !important; padding:7px 8px !important; min-width:34px; justify-content:center; }
+      #fulong-toggle-label { display:none !important; }
       header button[onclick="CartModule.openCartModal()"] { padding:7px 9px !important; }
       #auth-user-box { max-width:112px; padding:5px 6px !important; gap:4px !important; }
       #auth-user-box > div { min-width:0; }
@@ -743,8 +744,8 @@
       </div>
 
       <div class="flex flex-wrap gap-2 shrink-0">
-        <button onclick="AdminModule.switchTab('orders')" data-admintab="orders" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950">📦 Đơn Hàng &amp; Chat</button>
-        <button onclick="AdminModule.switchTab('topups')" data-admintab="topups" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">💳 Duyệt Nạp Tiền</button>
+        <button onclick="AdminModule.switchTab('orders')" data-admintab="orders" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950">📦 Đơn Hàng &amp; Chat <span id="admin-orders-badge" class="ml-1 inline-flex min-w-5 h-5 px-1 items-center justify-center rounded-full bg-rose-500 text-white text-[10px]">0</span></button>
+        <button onclick="AdminModule.switchTab('topups')" data-admintab="topups" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">💳 Duyệt Nạp Tiền <span id="admin-topups-badge" class="ml-1 inline-flex min-w-5 h-5 px-1 items-center justify-center rounded-full bg-rose-500 text-white text-[10px]">0</span></button>
         <button onclick="AdminModule.switchTab('products')" data-admintab="products" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">🐉 Sản Phẩm</button>
         <button onclick="AdminModule.switchTab('users')" data-admintab="users" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">👥 Thành Viên &amp; Ban Acc</button>
         <button onclick="AdminModule.switchTab('settings')" data-admintab="settings" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1d1140] text-slate-300">⚙️ Tỷ Giá, Thuế Card &amp; QR</button>
@@ -793,6 +794,7 @@
         this.enabled = !this.enabled;
         localStorage.setItem('spn_fulong_enabled', this.enabled ? 'true' : 'false');
         this.syncUI();
+        window.dispatchEvent(new Event('resize'));
       },
 
       syncUI() {
@@ -1346,12 +1348,13 @@
             messages: (o.order_messages || [])
               .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
               .map(m => ({
-                sender: m.sender_role,
+                sender: m.sender_type,
                 text: m.text,
                 time: new Date(m.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
               }))
           }));
         }
+        if (typeof AdminModule !== 'undefined') AdminModule.updateBadges();
       },
 
       async refreshTopups() {
@@ -1378,6 +1381,7 @@
             createdAt: new Date(t.created_at).toLocaleString('vi-VN')
           }));
         }
+        if (typeof AdminModule !== 'undefined') AdminModule.updateBadges();
       },
 
       async refreshAllUsers() {
@@ -2490,7 +2494,7 @@
         const { error } = await supabaseClient.from('order_messages').insert({
           order_id: this.activeOrderId,
           sender_id: user.id,
-          sender_role: 'user',
+          sender_type: 'user',
           text
         });
         if (error) {
@@ -2508,6 +2512,14 @@
     const AdminModule = {
       currentTab: 'orders',
       userSearchQuery: '',
+      updateBadges() {
+        const pendingOrders = StorageModule.getOrders().filter(o => o.status === 'pending').length;
+        const pendingTopups = StorageModule.getTopups().filter(t => t.status === 'pending').length;
+        const ob = document.getElementById('admin-orders-badge');
+        const tb = document.getElementById('admin-topups-badge');
+        if (ob) { ob.textContent = pendingOrders; ob.classList.toggle('hidden', pendingOrders === 0); }
+        if (tb) { tb.textContent = pendingTopups; tb.classList.toggle('hidden', pendingTopups === 0); }
+      },
       isBusy: false,
 
       async openAdminModal() {
@@ -2541,6 +2553,7 @@
         else if (tab === 'products') this.renderProductsAdmin(area);
         else if (tab === 'users') { StorageModule.refreshAllUsers().then(() => this.renderUsersAdmin(area)); this.renderUsersAdmin(area); }
         else if (tab === 'settings') this.renderSettingsAdmin(area);
+        this.updateBadges();
       },
 
       renderOrdersAdmin(area) {
@@ -2735,7 +2748,6 @@
         const user = AuthModule.getCurrentUser();
         if (!text || !user) return;
 
-        input.value = '';
         if (!supabaseClient || String(user.id).startsWith('local_')) {
           const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
           const o = orders.find(x => x.id === orderId);
@@ -2744,6 +2756,7 @@
             o.messages.push({ sender: 'admin', text, time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) });
             localStorage.setItem('spn_local_orders', JSON.stringify(orders));
           }
+          input.value = '';
           await StorageModule.refreshOrders();
           this.switchTab('orders');
           return;
@@ -2752,13 +2765,14 @@
         const { error } = await supabaseClient.from('order_messages').insert({
           order_id: orderId,
           sender_id: user.id,
-          sender_role: 'admin',
+          sender_type: 'admin',
           text
         });
         if (error) {
           UIHelperModule.toast(error.message, 'error');
           return;
         }
+        input.value = '';
         await StorageModule.refreshOrders();
         this.switchTab('orders');
       },
@@ -3235,15 +3249,24 @@ Nhập XOA để xác nhận. Thao tác này không thể hoàn tác.`);
       });
 
 
-      // Realtime chat: refresh the message list when either side inserts a message.
+      // Realtime: chat, new orders and top-up requests update without manual refresh.
       if (supabaseClient) {
-        supabaseClient.channel('shop-order-messages-realtime')
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_messages' }, async () => {
+        supabaseClient.channel('shop-admin-live-updates')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'order_messages' }, async () => {
             await StorageModule.refreshOrders();
             if (OrderModule.activeOrderId) OrderModule.renderChatBox();
-            if (AdminModule.currentTab === 'orders' && document.getElementById('admin-modal')?.classList.contains('active')) {
-              AdminModule.switchTab('orders');
-            }
+            if (AdminModule.currentTab === 'orders' && document.getElementById('admin-modal')?.classList.contains('active')) AdminModule.switchTab('orders');
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
+            await StorageModule.refreshOrders();
+            AdminModule.updateBadges();
+            if (AdminModule.currentTab === 'orders' && document.getElementById('admin-modal')?.classList.contains('active')) AdminModule.switchTab('orders');
+            if (OrderModule.activeOrderId) OrderModule.renderChatBox();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'topups' }, async () => {
+            await StorageModule.refreshTopups();
+            AdminModule.updateBadges();
+            if (AdminModule.currentTab === 'topups' && document.getElementById('admin-modal')?.classList.contains('active')) AdminModule.switchTab('topups');
           })
           .subscribe();
       }
