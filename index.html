@@ -1218,7 +1218,7 @@
             id: resolvedProfile.id,
             name: resolvedProfile.name,
             email: resolvedProfile.email,
-            role: String(session.user.email || '').toLowerCase() === ADMIN_OWNER_EMAIL ? 'admin' : 'user',
+            role: String(session.user.email || '').trim().toLowerCase() === ADMIN_OWNER_EMAIL ? 'admin' : 'user',
             balance: Number(resolvedProfile.balance) || 0,
             totalSpent: Number(resolvedProfile.total_spent) || 0,
             banned: Boolean(resolvedProfile.banned)
@@ -1576,9 +1576,15 @@
                   return;
                 }
                 await StorageModule.syncUserData();
-                if (this.getCurrentUser()) {
-                  UIHelperModule.toast('Đăng nhập thành công!', 'success');
+                if (!this.getCurrentUser()) {
+                  // Authentication succeeded, but the account profile could not be loaded/created.
+                  // Do not silently close the login modal as if the user were logged in.
+                  try { await supabaseClient.auth.signOut(); } catch (_) {}
+                  UIHelperModule.toast('Tài khoản đã xác thực nhưng chưa tải được hồ sơ. Kiểm tra bảng profiles và quyền RLS trong Supabase.', 'error');
+                  success = false;
+                  return;
                 }
+                UIHelperModule.toast('Đăng nhập thành công!', 'success');
                 success = true;
               }
             } catch (netErr) {
