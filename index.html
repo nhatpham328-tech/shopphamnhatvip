@@ -1136,7 +1136,8 @@
               price: Number(p.price),
               desc: p.description || '',
               badge: p.badge,
-              color: p.color
+              color: p.color,
+              imageUrl: p.image_url || p.image || p.imageUrl || ''
             }));
           }
         } catch (err) {
@@ -1218,7 +1219,7 @@
             id: resolvedProfile.id,
             name: resolvedProfile.name,
             email: resolvedProfile.email,
-            role: String(session.user.email || '').trim().toLowerCase() === ADMIN_OWNER_EMAIL ? 'admin' : 'user',
+            role: String(resolvedProfile.role || 'user').trim().toLowerCase(),
             balance: Number(resolvedProfile.balance) || 0,
             totalSpent: Number(resolvedProfile.total_spent) || 0,
             banned: Boolean(resolvedProfile.banned)
@@ -1834,6 +1835,7 @@
             <div class="rounded-3xl bg-[#130a2b] border border-purple-700/35 hover:border-purple-500/70 transition overflow-hidden flex flex-col justify-between shadow-xl group">
               <div>
                 <div class="relative h-40 bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-4 flex items-center justify-center">
+                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-3" onerror="this.style.display='none'">` : ''}
                   <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-pink-600/90 text-white text-[11px] font-bold">
                     ${catLabel}
                   </span>
@@ -2728,14 +2730,17 @@
             <input id="new-prod-price" type="text" inputmode="numeric" oninput="TopupModule.formatInput(this)" required placeholder="Giá bán (VD: 250.000)" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
             <button type="submit" class="rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2">+ Thêm Sản Phẩm</button>
             <input id="new-prod-desc" type="text" required placeholder="Mô tả chi tiết (Full Mut, Leg Color...)" class="sm:col-span-4 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+            <input id="new-prod-image" type="url" placeholder="Link ảnh HTTPS (https://...)" oninput="AdminModule.previewProductImage(this.value)" class="sm:col-span-4 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
+            <div id="new-prod-image-preview" class="sm:col-span-4 hidden rounded-xl bg-[#160d33] p-3 text-center"><img class="mx-auto max-h-36 max-w-full object-contain rounded-lg" alt="Xem trước ảnh sản phẩm" /><p class="mt-2 text-xs text-slate-400">Xem trước ảnh</p></div>
           </form>
 
           <div class="space-y-2">
             ${products.map(p => `
               <div class="p-3 rounded-2xl bg-[#0d0622] border border-purple-800/40 flex items-center justify-between gap-2 text-xs">
-                <div>
-                  <strong class="text-white">${p.name}</strong>
-                  <span class="text-emerald-400 font-bold ml-2">${UIHelperModule.formatMoney(p.price)}</span>
+                <div class="flex items-center gap-2 min-w-0">
+                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="" class="w-12 h-12 rounded-lg object-contain bg-[#160d33]" onerror="this.style.display='none'">` : ''}
+                  <div><strong class="text-white">${p.name}</strong>
+                  <span class="text-emerald-400 font-bold ml-2">${UIHelperModule.formatMoney(p.price)}</span></div>
                 </div>
                 <button onclick="AdminModule.deleteProduct('${p.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white font-bold">Xóa</button>
               </div>
@@ -2744,12 +2749,22 @@
         `;
       },
 
+      previewProductImage(url) {
+        const wrap = document.getElementById('new-prod-image-preview');
+        const img = wrap?.querySelector('img');
+        if (!wrap || !img) return;
+        if (url && /^https:\/\//i.test(url.trim())) { img.src = url.trim(); wrap.classList.remove('hidden'); img.onerror = () => { wrap.classList.add('hidden'); UIHelperModule.toast('Link ảnh không hợp lệ hoặc không tải được', 'error'); }; }
+        else { img.removeAttribute('src'); wrap.classList.add('hidden'); }
+      },
+
       async addNewProduct(e) {
         e.preventDefault();
         const name = document.getElementById('new-prod-name').value.trim();
         const category = document.getElementById('new-prod-cat').value;
         const price = UIHelperModule.parseDots(document.getElementById('new-prod-price').value);
         const desc = document.getElementById('new-prod-desc').value.trim();
+        const imageUrl = (document.getElementById('new-prod-image')?.value || '').trim();
+        if (imageUrl && !/^https:\/\//i.test(imageUrl)) { UIHelperModule.toast('Link ảnh phải bắt đầu bằng https://', 'error'); return; }
         if (!name || price <= 0) return;
 
         const newItem = {
@@ -2759,7 +2774,8 @@
           price,
           desc,
           badge: name.slice(0, 18),
-          color: 'text-amber-300'
+          color: 'text-amber-300',
+          imageUrl
         };
 
         if (!supabaseClient) {
