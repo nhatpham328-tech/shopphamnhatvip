@@ -1137,7 +1137,7 @@
               desc: p.description || '',
               badge: p.badge,
               color: p.color,
-              imageUrl: p.image_url || p.image || p.imageUrl || ''
+              imageUrl: p.image_url || p.imageUrl || p.image || p.imageURL || p.photo_url || ''
             }));
           }
         } catch (err) {
@@ -1836,12 +1836,11 @@
             <div class="rounded-3xl bg-[#130a2b] border border-purple-700/35 hover:border-purple-500/70 transition overflow-hidden flex flex-col justify-between shadow-xl group">
               <div>
                 <div class="relative h-40 bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-4 flex items-center justify-center">
-                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-3" onerror="this.onerror=null;this.style.display='none';this.parentElement.querySelector('.product-image-fallback')?.classList.remove('hidden')">` : ''}
-                  ${!p.imageUrl ? `<div class="product-image-fallback text-4xl text-purple-300/70" aria-label="Chưa có ảnh">🖼️</div>` : `<div class="product-image-fallback hidden flex flex-col items-center justify-center gap-2 text-purple-300/80" aria-label="Ảnh lỗi"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">Ảnh không tải được</span></div>`}
+                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-3" onerror="this.onerror=null;this.parentElement.querySelector('.product-image-fallback')?.classList.remove('hidden')">` : ''}
+                  <div class="product-image-fallback ${p.imageUrl ? 'hidden' : ''} flex flex-col items-center justify-center gap-2 text-purple-300/80" aria-label="${p.imageUrl ? 'Ảnh lỗi' : 'Chưa có ảnh'}"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">${p.imageUrl ? 'Ảnh không tải được' : 'Chưa có ảnh'}</span></div>
                   <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-pink-600/90 text-white text-[11px] font-bold">
                     ${catLabel}
                   </span>
-                  ${!p.imageUrl ? `<div class="product-image-fallback flex flex-col items-center justify-center gap-2 text-purple-300/80"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">Chưa có ảnh</span></div>` : ''}
                 </div>
                 <div class="p-4 space-y-1.5">
                   <h3 class="font-extrabold text-base text-white line-clamp-1">${p.name}</h3>
@@ -2721,21 +2720,10 @@
       renderProductsAdmin(area) {
         const products = StorageModule.getProducts();
         area.innerHTML = `
-          <form onsubmit="AdminModule.addNewProduct(event)" class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <input id="new-prod-name" type="text" required placeholder="Tên Rồng / Pot..." class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
-            <select id="new-prod-cat" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white">
-              <option value="dragon">🐉 Rồng Hiếm</option>
-              <option value="pot">🧪 Pot & Vật Phẩm</option>
-            </select>
-            <input id="new-prod-price" type="text" inputmode="numeric" oninput="TopupModule.formatInput(this)" required placeholder="Giá bán (VD: 250.000)" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
-            <button type="submit" class="rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-2">+ Thêm Sản Phẩm</button>
-            <input id="new-prod-desc" type="text" required placeholder="Mô tả chi tiết (Full Mut, Leg Color...)" class="sm:col-span-4 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
-            <textarea id="new-prod-image-batch" rows="4" placeholder="Dán link ảnh HTTPS hàng loạt — mỗi dòng 1 ảnh, theo thứ tự sản phẩm (không bắt buộc)
-https://.../image1.png
-https://.../image2.jpg
-https://.../image3.webp" oninput="AdminModule.updateBatchImageCount()" class="sm:col-span-4 bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white resize-y"></textarea>
-            <div id="new-prod-image-count" class="sm:col-span-4 text-xs text-slate-400">0 link ảnh hợp lệ. Mỗi sản phẩm mới sẽ tự lấy link kế tiếp.</div>
-          </form>
+          <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 text-sm text-slate-300">
+            <strong class="text-amber-300">Đăng sản phẩm từ Kho ảnh</strong><br>
+            Để tránh sản phẩm bị thiếu ảnh, hãy nhập URL vào Kho ảnh bên dưới, chỉnh tên/mô tả/giá trên thẻ ảnh rồi chọn <b>Đăng bán</b>. Form thêm sản phẩm/ảnh cũ đã được bỏ khỏi giao diện Admin.
+          </div>
 
           <section class="p-4 rounded-2xl bg-[#0d0622] border border-amber-500/30 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-sm font-black text-amber-300">📦 KHO ẢNH HÀNG LOẠT (Rồng / POT)</h3><span id="inv-summary" class="text-xs text-slate-400"></span></div>
@@ -2762,9 +2750,6 @@ https://.../image3.webp" oninput="AdminModule.updateBatchImageCount()" class="sm
             `).join('')}
           </div>
         `;
-        const batchBox = document.getElementById('new-prod-image-batch');
-        if (batchBox) batchBox.value = localStorage.getItem('spn_batch_images') || '';
-        this.updateBatchImageCount();
         this.renderInventoryCards();
       },
 
@@ -2791,7 +2776,7 @@ https://.../image3.webp" oninput="AdminModule.updateBatchImageCount()" class="sm
       saveInventoryCard(id) { const list=this.getInventory(); const x=list.find(v=>v.id===id); if(!x)return; x.name=document.querySelector(`[data-inv-name="${id}"]`)?.value.trim()||''; x.description=document.querySelector(`[data-inv-desc="${id}"]`)?.value.trim()||''; x.price=document.querySelector(`[data-inv-price="${id}"]`)?.value.trim()||''; x.url=document.querySelector(`[data-inv-url="${id}"]`)?.value.trim()||x.url; if(!/^https:\/\//i.test(x.url)){UIHelperModule.toast('Link ảnh phải là HTTPS','error');return;} this.saveInventory(list); UIHelperModule.toast('Đã lưu thẻ ảnh','success'); this.renderInventoryCards(); },
       setInventoryStatus(id,status){const list=this.getInventory();const x=list.find(v=>v.id===id);if(x){x.status=status;this.saveInventory(list);this.renderInventoryCards();}},
       deleteInventoryCard(id){if(!confirm('Xóa ảnh này khỏi kho?'))return;this.saveInventory(this.getInventory().filter(x=>x.id!==id));this.renderInventoryCards();},
-      async publishInventory(id){this.saveInventoryCard(id);const x=this.getInventory().find(v=>v.id===id);if(!x||!x.name||!x.price){UIHelperModule.toast('Nhập tên và giá trước khi đăng bán','error');return;}const price=UIHelperModule.parseDots(x.price);if(price<=0){UIHelperModule.toast('Giá không hợp lệ','error');return;}const item={id:'p_'+Date.now(),name:x.name,category:x.category,price,desc:x.description,badge:x.name.slice(0,18),color:'text-amber-300',imageUrl:x.url};if(!supabaseClient){StorageModule.state.products.unshift(item);localStorage.setItem('spn_local_products',JSON.stringify(StorageModule.state.products));}else{const {error}=await supabaseClient.from('products').insert({id:item.id,name:item.name,category:item.category,price:item.price,description:item.desc,image_url:item.imageUrl,badge:item.badge,color:item.color,active:true});if(error){UIHelperModule.toast(error.message,'error');return;}await StorageModule.syncPublicData();}x.status='selling';this.saveInventory(this.getInventory().map(v=>v.id===id?x:v));CatalogModule.renderProducts();this.renderInventoryCards();UIHelperModule.toast('Đã đăng ảnh này lên shop','success');},
+      async publishInventory(id){this.saveInventoryCard(id);const x=this.getInventory().find(v=>v.id===id);if(!x||!x.name||!x.price){UIHelperModule.toast('Nhập tên và giá trước khi đăng bán','error');return;}if(!/^https:\//i.test(x.url||'')){UIHelperModule.toast('Ảnh cần URL HTTPS hợp lệ trước khi đăng bán','error');return;}const price=UIHelperModule.parseDots(x.price);if(price<=0){UIHelperModule.toast('Giá không hợp lệ','error');return;}const item={id:'p_'+Date.now(),name:x.name,category:x.category,price,desc:x.description,badge:x.name.slice(0,18),color:'text-amber-300',imageUrl:x.url};if(!supabaseClient){StorageModule.state.products.unshift(item);localStorage.setItem('spn_local_products',JSON.stringify(StorageModule.state.products));}else{const {error}=await supabaseClient.from('products').insert({name:item.name,category:item.category,price:item.price,description:item.desc,image_url:item.imageUrl,badge:item.badge,color:item.color,active:true});if(error){UIHelperModule.toast(error.message,'error');return;}await StorageModule.syncPublicData();}x.status='selling';this.saveInventory(this.getInventory().map(v=>v.id===id?x:v));CatalogModule.renderProducts();this.renderInventoryCards();UIHelperModule.toast('Đã đăng ảnh này lên shop','success');},
       updateBatchImageCount() {
         const box = document.getElementById('new-prod-image-batch');
         const counter = document.getElementById('new-prod-image-count');
