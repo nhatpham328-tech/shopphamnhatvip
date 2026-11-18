@@ -390,7 +390,7 @@
       </div>
 
       <!-- Lưới sản phẩm -->
-      <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+      <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 items-start"></div>
     </section>
   </main>
 
@@ -1833,31 +1833,31 @@
             : `<div class="text-lg font-black text-cyan-300">${UIHelperModule.formatMoney(p.price)}</div>`;
 
           return `
-            <div class="rounded-3xl bg-[#130a2b] border border-purple-700/35 hover:border-purple-500/70 transition overflow-hidden flex flex-col justify-between shadow-xl group">
+            <div class="w-full min-w-0 rounded-2xl sm:rounded-3xl bg-[#130a2b] border border-purple-700/35 hover:border-purple-500/70 transition overflow-hidden flex flex-col justify-between shadow-xl group">
               <div>
-                <div class="relative h-40 bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-4 flex items-center justify-center">
-                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-3" onerror="this.onerror=null;this.parentElement.querySelector('.product-image-fallback')?.classList.remove('hidden')">` : ''}
+                <div class="relative w-full aspect-square bg-gradient-to-br from-[#231152] via-[#1a0d3d] to-[#120829] p-1.5 sm:p-2 flex items-center justify-center">
+                  ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="absolute inset-0 w-full h-full object-contain p-1.5 sm:p-2" onerror="this.onerror=null;this.parentElement.querySelector('.product-image-fallback')?.classList.remove('hidden')">` : ''}
                   <div class="product-image-fallback ${p.imageUrl ? 'hidden' : ''} flex flex-col items-center justify-center gap-2 text-purple-300/80" aria-label="${p.imageUrl ? 'Ảnh lỗi' : 'Chưa có ảnh'}"><span class="text-4xl">🖼️</span><span class="text-xs font-semibold">${p.imageUrl ? 'Ảnh không tải được' : 'Chưa có ảnh'}</span></div>
                   <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-pink-600/90 text-white text-[11px] font-bold">
                     ${catLabel}
                   </span>
                 </div>
-                <div class="p-4 space-y-1.5">
-                  <h3 class="font-extrabold text-base text-white line-clamp-1">${p.name}</h3>
-                  <p class="text-xs text-slate-400 line-clamp-2">${p.desc || ''}</p>
+                <div class="p-2.5 sm:p-4 space-y-1.5">
+                  <h3 class="font-extrabold text-sm sm:text-base text-white line-clamp-2">${p.name}</h3>
+                  <p class="text-[11px] sm:text-xs text-slate-400 line-clamp-2">${p.desc || ''}</p>
                 </div>
               </div>
 
-              <div class="px-4 pb-4 pt-2 border-t border-purple-900/40 flex items-center justify-between gap-2">
+              <div class="px-2.5 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-purple-900/40 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span class="text-[10px] font-bold text-slate-400 uppercase block">GIÁ BÁN</span>
                   ${priceHtml}
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <button onclick='CartModule.addProductById("${p.id}")' title="Thêm vào giỏ" class="p-2.5 rounded-xl bg-[#22134a] hover:bg-purple-700/50 border border-purple-600/40 text-purple-200 transition">
+                  <button onclick='CartModule.addProductById("${p.id}")' title="Thêm vào giỏ" class="p-2 sm:p-2.5 rounded-xl bg-[#22134a] hover:bg-purple-700/50 border border-purple-600/40 text-purple-200 transition">
                     🛒
                   </button>
-                  <button onclick='CartModule.buyProductNow("${p.id}")' class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md transition">
+                  <button onclick='CartModule.buyProductNow("${p.id}")' class="px-2.5 sm:px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md transition">
                     Mua Ngay
                   </button>
                 </div>
