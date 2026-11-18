@@ -1128,7 +1128,7 @@
             .eq('active', true)
             .order('created_at', { ascending: false });
 
-          if (productsData && productsData.length > 0) {
+          if (productsData) {
             this.state.products = productsData.map(p => ({
               id: p.id,
               name: p.name,
@@ -2793,6 +2793,7 @@
           category,
           price,
           description: desc,
+          image_url: imageUrl || null,
           badge: newItem.badge,
           color: 'text-amber-300',
           active: true
@@ -2815,9 +2816,13 @@
           this.switchTab('products');
           return;
         }
-        const { error } = await supabaseClient.from('products').update({ active: false }).eq('id', id);
+        const { data: deletedRows, error } = await supabaseClient.from('products').update({ active: false }).eq('id', id).select('id');
         if (error) {
           UIHelperModule.toast(error.message, 'error');
+          return;
+        }
+        if (!deletedRows || deletedRows.length === 0) {
+          UIHelperModule.toast('Không xóa được sản phẩm: quyền database/RLS từ chối hoặc sản phẩm không tồn tại.', 'error');
           return;
         }
         await StorageModule.syncPublicData();
@@ -3006,8 +3011,25 @@
           await StorageModule.syncUserData();
           AuthModule.syncHeaderUI();
           CatalogModule.renderProducts();
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          await StorageModule.syncUserData();
+          AuthModule.syncHeaderUI();
         }
       });
+
+
+      // Realtime chat: refresh the message list when either side inserts a message.
+      if (supabaseClient) {
+        supabaseClient.channel('shop-order-messages-realtime')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'order_messages' }, async () => {
+            await StorageModule.refreshOrders();
+            if (OrderModule.activeOrderId) OrderModule.renderChatBox();
+            if (AdminModule.currentTab === 'orders' && document.getElementById('admin-modal')?.classList.contains('active')) {
+              AdminModule.switchTab('orders');
+            }
+          })
+          .subscribe();
+      }
     });
   </script>
 </body>
