@@ -89,10 +89,10 @@
 
     /* Che ten chu so huu tren anh rong: chi phu vung nho goc duoi ben phai */
     .owner-name-mask {
-      position:absolute; right:5%; bottom:6%; width:31%; height:9%;
-      min-height:14px; max-height:34px; border-radius:7px;
-      background:rgba(20, 12, 48, .94);
-      border:1px solid rgba(196,181,253,.72);
+      position:absolute; right:5.5%; bottom:7%; width:27%; height:11%;
+      min-height:18px; max-height:42px; border-radius:8px;
+      background:linear-gradient(135deg, rgba(24,15,55,.99), rgba(42,24,82,.99));
+      border:1px solid rgba(196,181,253,.82);
       box-shadow:0 2px 10px rgba(0,0,0,.38);
       backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
       display:flex; align-items:center; justify-content:center;
@@ -101,6 +101,69 @@
       pointer-events:none; z-index:3; overflow:hidden; white-space:nowrap;
     }
     .owner-mask-frame { position:relative; overflow:hidden; }
+
+
+    /* Mobile-first polish: prevent sideways overflow and compress the header/hero. */
+    @media (max-width: 640px) {
+      html, body { width:100%; max-width:100%; overflow-x:hidden; }
+      body { -webkit-text-size-adjust:100%; }
+      #fulong-mascot-canvas { display:none !important; }
+      header { position:sticky; top:0; }
+      header > div:first-child {
+        min-height:58px !important; height:auto !important;
+        padding:8px 10px !important; gap:6px !important;
+        flex-wrap:nowrap !important;
+      }
+      header > div:first-child > a { min-width:0; flex:1 1 auto; gap:7px !important; }
+      header > div:first-child > a > div:first-child { width:34px !important; height:34px !important; border-radius:12px !important; }
+      header > div:first-child > a span { font-size:11px !important; letter-spacing:-.025em !important; white-space:nowrap; }
+      header > div:first-child > div:last-child { flex:0 0 auto; gap:5px !important; }
+      #fulong-toggle-btn { display:none !important; }
+      header button[onclick="CartModule.openCartModal()"] { padding:7px 9px !important; }
+      #auth-user-box { max-width:112px; padding:5px 6px !important; gap:4px !important; }
+      #auth-user-box > div { min-width:0; }
+      #header-user-name, #header-user-rank { display:none !important; }
+      #header-user-balance { font-size:10px !important; white-space:nowrap; }
+      #auth-user-box button { padding:5px !important; }
+      header button[onclick="UIHelperModule.toggleMobileMenu()"] { padding:7px !important; }
+      #mobile-menu { padding:8px 12px !important; }
+
+      main { padding:14px 10px 24px !important; gap:24px !important; }
+      #top > section:first-child {
+        padding:18px 15px !important; border-radius:22px !important;
+      }
+      #top > section:first-child .grid { gap:16px !important; }
+      #top > section:first-child h1 { font-size:clamp(25px,7vw,32px) !important; line-height:1.12 !important; }
+      #top > section:first-child p { font-size:13px !important; line-height:1.55 !important; }
+      #top > section:first-child .inline-flex { font-size:9px !important; line-height:1.35 !important; padding:7px 10px !important; }
+      #top > section:first-child .flex.flex-wrap.items-center.gap-3 { gap:8px !important; }
+      #top > section:first-child .flex.flex-wrap.items-center.gap-3 a,
+      #top > section:first-child .flex.flex-wrap.items-center.gap-3 button {
+        width:100%; justify-content:center; padding:11px 12px !important; font-size:12px !important;
+      }
+      #top > section:first-child .lg\:col-span-5 > div { padding:13px !important; }
+      #top > section:first-child .grid.grid-cols-2.gap-3 > div { padding:9px 6px !important; }
+      #services { gap:15px !important; }
+      #services > .flex:first-child {
+        flex-wrap:nowrap !important; overflow-x:auto; overflow-y:hidden;
+        padding:2px 1px 7px; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+      }
+      #services > .flex:first-child::-webkit-scrollbar { display:none; }
+      #services > .flex:first-child .cat-btn { flex:0 0 auto; white-space:nowrap; padding:9px 11px !important; }
+      #services .grid.grid-cols-1.sm\:grid-cols-12 { gap:8px !important; }
+      #services #search-input, #services select { min-height:40px; font-size:12px !important; }
+      #services h2 { font-size:16px !important; line-height:1.25; }
+      #products-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:9px !important; }
+      footer { padding:20px 12px !important; text-align:center; }
+      .modal-layer > div { max-height:92dvh !important; padding:15px !important; }
+    }
+    @media (max-width: 380px) {
+      header > div:first-child > a span { font-size:10px !important; }
+      #auth-user-box { max-width:94px; }
+      #header-user-balance { font-size:9px !important; }
+      #products-grid { gap:7px !important; }
+    }
+
   </style>
 </head>
 <body class="bg-[#090514] text-slate-100 antialiased selection:bg-purple-500 selection:text-white">
@@ -2500,6 +2563,7 @@
                   <button onclick="AdminModule.completeOrder('${o.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">✅ Duyệt Hoàn Tất</button>
                   <button onclick="AdminModule.cancelOrder('${o.id}')" class="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">✕ Hủy &amp; Hoàn Tiền</button>
                 ` : `<span class="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-bold uppercase">${o.status}</span>`}
+                ${o.status !== 'pending' ? `<button onclick="AdminModule.deleteOrder('${o.id}')" class="px-2.5 py-1 rounded-lg bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold">🗑 Xóa đơn</button>` : ''}
               </div>
             </div>
             <div class="text-xs text-slate-300">Sản phẩm: ${o.items.map(i => `${i.name} (x${i.qty})`).join(', ')}</div>
@@ -2513,6 +2577,29 @@
             </div>
           </div>
         `).join('');
+      },
+
+      async deleteOrder(orderId) {
+        const order = StorageModule.getOrders().find(o => String(o.id) === String(orderId));
+        if (!order) { UIHelperModule.toast('Không tìm thấy đơn hàng.', 'error'); return; }
+        if (order.status === 'pending') { UIHelperModule.toast('Chỉ được xóa đơn đã Done hoặc đã hủy.', 'error'); return; }
+        if (!confirm(`Xóa vĩnh viễn đơn ${orderId} và tin nhắn liên quan? Thao tác này không thể hoàn tác.`)) return;
+        if (this.isBusy) return;
+        this.isBusy = true;
+        try {
+          if (!supabaseClient || String(orderId).startsWith('local_')) {
+            const rows = JSON.parse(localStorage.getItem('spn_local_orders') || '[]').filter(o => String(o.id) !== String(orderId));
+            localStorage.setItem('spn_local_orders', JSON.stringify(rows));
+          } else {
+            const { error } = await supabaseClient.rpc('rpc_admin_delete_order', { p_order_id: orderId });
+            if (error) throw error;
+          }
+          await StorageModule.refreshOrders();
+          UIHelperModule.toast('Đã xóa đơn hàng.', 'success');
+          this.switchTab('orders');
+        } catch (e) {
+          UIHelperModule.toast('Không xóa được đơn: ' + (e.message || e), 'error');
+        } finally { this.isBusy = false; }
       },
 
       async removeSoldProductsFromShop(order) {
@@ -2964,6 +3051,7 @@
                     <button onclick="AdminModule.toggleBanUser('${u.id}')" class="px-3 py-1.5 rounded-xl font-bold text-xs ${u.banned ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}">
                       ${u.banned ? '🔓 Mở Ban Acc' : '🚫 Ban Acc'}
                     </button>
+                    <button onclick="AdminModule.deleteUser('${u.id}', '${String(u.email || '').replace(/'/g, '&#39;')}')" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-red-900 hover:bg-red-700 text-white">🗑 Xóa acc</button>
                   ` : ''}
                 </div>
               `;
@@ -3004,6 +3092,35 @@
         await StorageModule.refreshAllUsers();
         UIHelperModule.toast(data.banned ? '🚫 Đã khóa tài khoản thành viên!' : '🔓 Đã mở khóa tài khoản!', 'info');
         this.switchTab('users');
+      },
+
+      async deleteUser(userId, email) {
+        const current = AuthModule.getCurrentUser();
+        if (!current || current.role !== 'admin' || String(userId) === String(current.id)) {
+          UIHelperModule.toast('Không thể xóa tài khoản Admin đang đăng nhập.', 'error'); return;
+        }
+        const typed = prompt(`XÓA VĨNH VIỄN tài khoản ${email || userId}?
+Nhập XOA để xác nhận. Thao tác này không thể hoàn tác.`);
+        if (typed !== 'XOA') return;
+        if (this.isBusy) return;
+        this.isBusy = true;
+        try {
+          if (!supabaseClient || String(userId).startsWith('local_')) {
+            const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]').filter(u => String(u.id) !== String(userId));
+            localStorage.setItem('spn_local_users', JSON.stringify(users));
+            const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]').filter(o => String(o.userId) !== String(userId));
+            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+          } else {
+            const { error } = await supabaseClient.rpc('rpc_admin_delete_user', { p_target_user_id: userId });
+            if (error) throw error;
+          }
+          await StorageModule.refreshAllUsers();
+          await StorageModule.refreshOrders();
+          UIHelperModule.toast('Đã xóa tài khoản.', 'success');
+          this.switchTab('users');
+        } catch (e) {
+          UIHelperModule.toast('Không xóa được tài khoản: ' + (e.message || e), 'error');
+        } finally { this.isBusy = false; }
       },
 
       renderSettingsAdmin(area) {
