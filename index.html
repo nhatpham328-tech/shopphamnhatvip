@@ -2499,6 +2499,19 @@
         `).join('');
       },
 
+      async removeSoldProductsFromShop(order) {
+        const soldIds=(order?.items||[]).map(i=>i.id).filter(Boolean);
+        if(!soldIds.length)return;
+        if(supabaseClient){
+          const {error}=await supabaseClient.from('products').update({active:false}).in('id',soldIds);
+          if(error) UIHelperModule.toast('Đơn đã hoàn tất nhưng chưa tự ẩn sản phẩm: '+error.message,'error');
+          else await StorageModule.syncPublicData();
+        }else{
+          StorageModule.state.products=StorageModule.state.products.filter(p=>!soldIds.includes(p.id));
+          localStorage.setItem('spn_local_products',JSON.stringify(StorageModule.state.products));
+        }
+        const inv=this.getInventory(); this.saveInventory(inv.filter(x=>!soldIds.includes(x.productId)));
+      },
       async completeOrder(orderId) {
         if (this.isBusy) return;
         this.isBusy = true;
@@ -2510,6 +2523,7 @@
             if (!o || o.status !== 'pending') return;
             o.status = 'done';
             localStorage.setItem('spn_local_orders', JSON.stringify(orders));
+            await this.removeSoldProductsFromShop(o);
 
             const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
             const u = users.find(x => x.id === o.userId);
@@ -2545,6 +2559,8 @@
           }
 
           await StorageModule.syncUserData();
+          const completedOrder = StorageModule.getOrders().find(o => o.id === orderId);
+          if (completedOrder) await this.removeSoldProductsFromShop(completedOrder);
           AuthModule.syncHeaderUI();
           CatalogModule.renderProducts();
 
@@ -2734,7 +2750,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-sm font-black text-amber-300">📦 KHO ẢNH HÀNG LOẠT (Rồng / POT)</h3><span id="inv-summary" class="text-xs text-slate-400"></span></div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <select id="inv-category" onchange="AdminModule.inventoryPage=0;AdminModule.renderInventoryCards()" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white"><option value="dragon">🐉 Kho Rồng</option><option value="pot">🧪 Kho POT</option></select>
-              <select id="inv-filter" onchange="AdminModule.renderInventoryCards()" class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white"><option value="all">Tất cả ảnh</option><option value="stored">Trong kho</option><option value="selling">Đang bán</option><option value="hidden">Đã ẩn</option></select>
+              
               <input id="inv-search" oninput="AdminModule.renderInventoryCards()" placeholder="Tìm tên / URL..." class="bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
             </div>
             <textarea id="inv-bulk-urls" rows="5" placeholder="Dán hàng trăm link ảnh, mỗi dòng 1 link HTTPS..." class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white resize-y"></textarea>
@@ -2771,16 +2787,45 @@
       },
       clearInventoryInput() { const box=document.getElementById('inv-bulk-urls'); if(box) box.value=''; },
       renderInventoryCards() {
-        const host=document.getElementById('inv-cards'); if(!host) return; const all=this.getInventory(); const category=document.getElementById('inv-category')?.value || 'dragon'; const filter=document.getElementById('inv-filter')?.value || 'all'; const query=(document.getElementById('inv-search')?.value || '').trim().toLowerCase();
+        const host=document.getElementById('inv-cards'); if(!host) return; const all=this.getInventory(); const category=document.getElementById('inv-category')?.value || 'dragon'; const filter='all'; const query=(document.getElementById('inv-search')?.value || '').trim().toLowerCase();
         const items=all.filter(x=>x.category===category && (filter==='all'||x.status===filter) && (!query||[x.name,x.url,x.description].some(v=>String(v||'').toLowerCase().includes(query)))); const summary=document.getElementById('inv-summary'); if(summary) summary.textContent=`${all.filter(x=>x.category===category).length} ảnh trong kho`;
         const pages=Math.max(1,Math.ceil(items.length/this.inventoryPageSize)); this.inventoryPage=Math.min(this.inventoryPage,pages-1); const start=this.inventoryPage*this.inventoryPageSize; const shown=items.slice(start,start+this.inventoryPageSize);
-        host.innerHTML=shown.map(x=>{const id=this.inventoryEsc(x.id); const url=this.inventoryEsc(x.url); return `<article class="rounded-xl border border-purple-700/40 bg-[#160d33] p-3 space-y-2"><img src="${url}" loading="lazy" class="w-full h-40 object-contain rounded-lg bg-[#0d0622]" onerror="this.alt='Ảnh không tải được';this.style.opacity='.25'"/><input data-inv-name="${id}" value="${this.inventoryEsc(x.name)}" placeholder="Tên ảnh / Rồng" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><textarea data-inv-desc="${id}" placeholder="Mô tả" rows="2" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white">${this.inventoryEsc(x.description)}</textarea><input data-inv-price="${id}" value="${this.inventoryEsc(x.price)}" inputmode="numeric" placeholder="Giá bán (để trống nếu chưa bán)" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><input data-inv-url="${id}" value="${url}" placeholder="Link ảnh" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><div class="flex flex-wrap gap-1"><button onclick="AdminModule.saveInventoryCard('${id}')" class="px-2 py-1 rounded bg-indigo-600 text-white text-xs font-bold">Lưu</button><button onclick="AdminModule.publishInventory('${id}')" class="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-bold">Đăng bán</button><button onclick="AdminModule.setInventoryStatus('${id}','hidden')" class="px-2 py-1 rounded bg-slate-600 text-white text-xs">Ẩn</button><button onclick="AdminModule.setInventoryStatus('${id}','stored')" class="px-2 py-1 rounded bg-purple-700 text-white text-xs">Trong kho</button><button onclick="AdminModule.deleteInventoryCard('${id}')" class="px-2 py-1 rounded bg-rose-600 text-white text-xs">Xóa</button></div><div class="text-[10px] text-slate-400">Trạng thái: ${x.status==='selling'?'Đang bán':x.status==='hidden'?'Đã ẩn':'Trong kho'}</div></article>`;}).join('');
+        host.innerHTML=shown.map(x=>{const id=this.inventoryEsc(x.id); const url=this.inventoryEsc(x.url); return `<article class="rounded-xl border border-purple-700/40 bg-[#160d33] p-3 space-y-2"><img src="${url}" loading="lazy" class="w-full h-40 object-contain rounded-lg bg-[#0d0622]" onerror="this.alt='Ảnh không tải được';this.style.opacity='.25'"/><input data-inv-name="${id}" value="${this.inventoryEsc(x.name)}" placeholder="Tên ảnh / Rồng" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><textarea data-inv-desc="${id}" placeholder="Mô tả" rows="2" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white">${this.inventoryEsc(x.description)}</textarea><input data-inv-price="${id}" value="${this.inventoryEsc(x.price)}" inputmode="numeric" placeholder="Giá bán (để trống nếu chưa bán)" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><input data-inv-url="${id}" value="${url}" placeholder="Link ảnh" class="w-full bg-[#0d0622] border border-purple-700/40 rounded-lg px-2 py-1.5 text-xs text-white"/><div class="flex flex-wrap gap-1"><button onclick="AdminModule.publishInventory('${id}')" class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">💾 Lưu & đăng lên Shop</button><button onclick="AdminModule.deleteInventoryCard('${id}')" class="px-2.5 py-1.5 rounded bg-rose-600 text-white text-xs font-bold">🗑 Xóa</button></div><div class="text-[10px] text-slate-400">${x.productId?'Đang có trên Shop':'Lưu là đăng bán ngay'}</div></article>`;}).join('');
         const pager=document.getElementById('inv-pagination'); if(pager) pager.innerHTML=`<button onclick="AdminModule.inventoryPage=Math.max(0,AdminModule.inventoryPage-1);AdminModule.renderInventoryCards()" class="px-3 py-1 rounded bg-slate-700 text-white text-xs" ${this.inventoryPage===0?'disabled':''}>← Trước</button><span class="text-xs text-slate-400 self-center">Trang ${this.inventoryPage+1}/${pages} • ${items.length} ảnh</span><button onclick="AdminModule.inventoryPage=Math.min(${pages-1},AdminModule.inventoryPage+1);AdminModule.renderInventoryCards()" class="px-3 py-1 rounded bg-slate-700 text-white text-xs" ${this.inventoryPage>=pages-1?'disabled':''}>Sau →</button>`;
       },
       saveInventoryCard(id) { const list=this.getInventory(); const x=list.find(v=>v.id===id); if(!x)return; x.name=document.querySelector(`[data-inv-name="${id}"]`)?.value.trim()||''; x.description=document.querySelector(`[data-inv-desc="${id}"]`)?.value.trim()||''; x.price=document.querySelector(`[data-inv-price="${id}"]`)?.value.trim()||''; x.url=document.querySelector(`[data-inv-url="${id}"]`)?.value.trim()||x.url; if(!/^https:\/\//i.test(x.url)){UIHelperModule.toast('Link ảnh phải là HTTPS','error');return;} this.saveInventory(list); UIHelperModule.toast('Đã lưu thẻ ảnh','success'); this.renderInventoryCards(); },
       setInventoryStatus(id,status){const list=this.getInventory();const x=list.find(v=>v.id===id);if(x){x.status=status;this.saveInventory(list);this.renderInventoryCards();}},
       deleteInventoryCard(id){if(!confirm('Xóa ảnh này khỏi kho?'))return;this.saveInventory(this.getInventory().filter(x=>x.id!==id));this.renderInventoryCards();},
-      async publishInventory(id){this.saveInventoryCard(id);const x=this.getInventory().find(v=>v.id===id);if(!x||!x.name||!x.price){UIHelperModule.toast('Nhập tên và giá trước khi đăng bán','error');return;}if(!/^https:\//i.test(x.url||'')){UIHelperModule.toast('Ảnh cần URL HTTPS hợp lệ trước khi đăng bán','error');return;}const price=UIHelperModule.parseDots(x.price);if(price<=0){UIHelperModule.toast('Giá không hợp lệ','error');return;}const item={id:'p_'+Date.now(),name:x.name,category:x.category,price,desc:x.description,badge:x.name.slice(0,18),color:'text-amber-300',imageUrl:x.url};if(!supabaseClient){StorageModule.state.products.unshift(item);localStorage.setItem('spn_local_products',JSON.stringify(StorageModule.state.products));}else{const {error}=await supabaseClient.from('products').insert({name:item.name,category:item.category,price:item.price,description:item.desc,image_url:item.imageUrl,badge:item.badge,color:item.color,active:true});if(error){UIHelperModule.toast(error.message,'error');return;}await StorageModule.syncPublicData();}x.status='selling';this.saveInventory(this.getInventory().map(v=>v.id===id?x:v));CatalogModule.renderProducts();this.renderInventoryCards();UIHelperModule.toast('Đã đăng ảnh này lên shop','success');},
+      async publishInventory(id){
+        if(this.isPublishingInventory) return;
+        this.isPublishingInventory=true;
+        try {
+        const list=this.getInventory(); const x=list.find(v=>v.id===id); if(!x)return;
+        x.name=document.querySelector(`[data-inv-name="${id}"]`)?.value.trim()||'';
+        x.description=document.querySelector(`[data-inv-desc="${id}"]`)?.value.trim()||'';
+        x.price=document.querySelector(`[data-inv-price="${id}"]`)?.value.trim()||'';
+        x.url=document.querySelector(`[data-inv-url="${id}"]`)?.value.trim()||x.url;
+        if(!x.name||!x.price){UIHelperModule.toast('Nhập tên và giá trước khi lưu','error');return;}
+        if(!/^https:\/\//i.test(x.url||'')){UIHelperModule.toast('Ảnh cần URL HTTPS hợp lệ','error');return;}
+        const price=UIHelperModule.parseDots(x.price); if(price<=0){UIHelperModule.toast('Giá không hợp lệ','error');return;}
+        // products.id is NOT NULL in Supabase: explicitly generate it for inserts.
+        const productId=x.productId || ('prod_'+(globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2))));
+        const payload={id:productId,name:x.name,category:x.category,price,description:x.description,image_url:x.url,badge:x.name.slice(0,18),color:'text-amber-300',active:true};
+        if(!supabaseClient){
+          const item={id:x.productId||('p_'+Date.now()),...payload,desc:payload.description,imageUrl:payload.image_url};
+          const idx=StorageModule.state.products.findIndex(p=>p.id===item.id); if(idx>=0)StorageModule.state.products[idx]=item; else StorageModule.state.products.unshift(item);
+          localStorage.setItem('spn_local_products',JSON.stringify(StorageModule.state.products)); x.productId=item.id;
+        }else{
+          let result;
+          if(x.productId) result=await supabaseClient.from('products').update(payload).eq('id',x.productId).select('id').maybeSingle();
+          else result=await supabaseClient.from('products').insert(payload).select('id').single();
+          if(result.error){UIHelperModule.toast(result.error.message,'error');return;}
+          x.productId=result.data?.id||x.productId;
+          await StorageModule.syncPublicData();
+        }
+        x.status='selling'; this.saveInventory(list); CatalogModule.renderProducts(); this.renderInventoryCards(); UIHelperModule.toast('Đã lưu và đăng sản phẩm lên Shop','success');
+        } finally { this.isPublishingInventory=false; }
+      },
       updateBatchImageCount() {
         const box = document.getElementById('new-prod-image-batch');
         const counter = document.getElementById('new-prod-image-count');
@@ -2805,7 +2850,7 @@
         if (!name || price <= 0) return;
 
         const newItem = {
-          id: 'p_' + Date.now(),
+          id: 'prod_' + (globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2))),
           name,
           category,
           price,
@@ -2827,6 +2872,7 @@
         }
 
         const { error } = await supabaseClient.from('products').insert({
+          id: newItem.id,
           name,
           category,
           price,
