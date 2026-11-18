@@ -1181,9 +1181,32 @@
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profErr || !profileData) return;
+          // Repair missing profile for newly registered Supabase users.
+          // This insert is subject to Supabase RLS; if policy blocks it, the UI reports the issue.
+          let resolvedProfile = profileData;
+          if (!resolvedProfile && !profErr) {
+            const metadataName = session.user.user_metadata?.name || session.user.user_metadata?.full_name || (session.user.email || '').split('@')[0];
+            const { data: createdProfile, error: createProfileErr } = await supabaseClient
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                name: metadataName,
+                email: session.user.email,
+                balance: 0,
+                total_spent: 0,
+                banned: false
+              })
+              .select('*')
+              .maybeSingle();
+            if (!createProfileErr && createdProfile) resolvedProfile = createdProfile;
+            else {
+              console.warn('Profile auto-create failed; check profiles table/RLS:', createProfileErr);
+              UIHelperModule.toast('Đăng nhập được nhưng chưa tạo hồ sơ. Admin cần kiểm tra Supabase profiles/RLS.', 'error');
+            }
+          }
+          if (profErr || !resolvedProfile) return;
 
-          if (profileData.banned) {
+          if (resolvedProfile.banned) {
             await supabaseClient.auth.signOut();
             this.state.user = null;
             this.state.profile = null;
@@ -1192,13 +1215,13 @@
           }
 
           this.state.profile = {
-            id: profileData.id,
-            name: profileData.name,
-            email: profileData.email,
+            id: resolvedProfile.id,
+            name: resolvedProfile.name,
+            email: resolvedProfile.email,
             role: String(session.user.email || '').toLowerCase() === ADMIN_OWNER_EMAIL ? 'admin' : 'user',
-            balance: Number(profileData.balance) || 0,
-            totalSpent: Number(profileData.total_spent) || 0,
-            banned: Boolean(profileData.banned)
+            balance: Number(resolvedProfile.balance) || 0,
+            totalSpent: Number(resolvedProfile.total_spent) || 0,
+            banned: Boolean(resolvedProfile.banned)
           };
 
           const { data: cartRow } = await supabaseClient
