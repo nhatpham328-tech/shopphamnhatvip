@@ -301,6 +301,9 @@
             <button onclick="UIHelperModule.openTopupModal('qr')" class="px-6 py-3.5 rounded-2xl bg-[#22134a] hover:bg-[#2c195e] border border-purple-500/40 text-purple-100 font-bold text-sm transition flex items-center gap-2">
               <span>💳 Nạp Số Dư Nhanh</span>
             </button>
+            <button onclick="UIHelperModule.openRankModal()" class="px-6 py-3.5 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/50 text-amber-200 font-bold text-sm transition flex items-center gap-2">
+              <span>👑 Nâng Hạng VIP</span>
+            </button>
             <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="px-5 py-3.5 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 font-bold text-sm transition flex items-center gap-2">
               <span>🎧 Zalo Chủ Shop: 0395033213</span>
             </a>
@@ -782,7 +785,7 @@
      * MODULE 0: FulongMascotModule - Rồng Thiên Fulong Bay Linh Động
      * ============================================================ */
     const FulongMascotModule = {
-      enabled: true, // Moi lan vao website deu bat Fulong mac dinh; co the tat trong phien hien tai.
+      enabled: false, // Mặc định tắt khi khách vừa vào website; khách chủ động bật mới hiển thị.
 
       toggle() {
         this.enabled = !this.enabled;
@@ -1169,7 +1172,7 @@
         { id: 'bachkim', name: 'Bạch Kim', minSpent: 2000000, discount: 3, badgeClass: 'bg-cyan-300 text-slate-950' },
         { id: 'kimcuong', name: 'Kim Cương', minSpent: 3000000, discount: 4, badgeClass: 'bg-indigo-400 text-slate-950' },
         { id: 'phithang', name: 'Phi Thăng', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
-        { id: 'daide', name: 'Đại Đế', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
+        { id: 'daide', name: 'Thần Thoại', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
       ],
 
       async syncPublicData() {
@@ -1293,6 +1296,7 @@
             name: resolvedProfile.name,
             email: resolvedProfile.email,
             role: String(resolvedProfile.role || 'user').trim().toLowerCase(),
+            rankOverride: resolvedProfile.vip_rank_override || null,
             balance: Number(resolvedProfile.balance) || 0,
             totalSpent: Number(resolvedProfile.total_spent) || 0,
             banned: Boolean(resolvedProfile.banned)
@@ -1395,6 +1399,7 @@
             name: u.name,
             email: u.email,
             role: u.role,
+            rankOverride: u.vip_rank_override || null,
             balance: Number(u.balance) || 0,
             totalSpent: Number(u.total_spent) || 0,
             banned: Boolean(u.banned)
@@ -1427,7 +1432,11 @@
         return this.formatDots(num) + 'đ';
       },
 
-      getUserRank(totalSpent) {
+      getUserRank(totalSpent, rankOverride = null) {
+        if (rankOverride) {
+          const forced = StorageModule.RANK_TIERS.find(t => t.id === rankOverride);
+          if (forced) return forced;
+        }
         const spent = Number(totalSpent) || 0;
         let current = StorageModule.RANK_TIERS[0];
         for (const tier of StorageModule.RANK_TIERS) {
@@ -1480,7 +1489,7 @@
       openRankModal() {
         const user = AuthModule.getCurrentUser();
         const userSpent = user ? user.totalSpent : 0;
-        const currentRank = this.getUserRank(userSpent);
+        const currentRank = this.getUserRank(userSpent, user?.rankOverride);
 
         const currentIndex = StorageModule.RANK_TIERS.findIndex(t => t.id === currentRank.id);
         const nextRank = StorageModule.RANK_TIERS[currentIndex + 1] || null;
@@ -1714,7 +1723,7 @@
         userBox.classList.remove('hidden');
         userBox.classList.add('flex');
 
-        const rank = UIHelperModule.getUserRank(user.totalSpent);
+        const rank = UIHelperModule.getUserRank(user.totalSpent, user.rankOverride);
         document.getElementById('header-user-name').textContent = user.name;
         const rankBadge = document.getElementById('header-user-rank');
         rankBadge.textContent = rank.name;
@@ -1805,7 +1814,7 @@
         document.getElementById('exchange-output-value').textContent = UIHelperModule.formatDots(received);
 
         const user = AuthModule.getCurrentUser();
-        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent, user.rankOverride) : StorageModule.RANK_TIERS[0];
         const discountPct = isCoin ? rank.discount : 0;
         const finalPrice = Math.round(amount * (1 - discountPct / 100));
 
@@ -1879,7 +1888,7 @@
         document.getElementById('product-count-badge').textContent = `${products.length} sản phẩm`;
 
         const user = AuthModule.getCurrentUser();
-        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent, user.rankOverride) : StorageModule.RANK_TIERS[0];
 
         const grid = document.getElementById('products-grid');
         if (products.length === 0) {
@@ -2017,7 +2026,7 @@
       renderCartModal() {
         const listEl = document.getElementById('cart-items-list');
         const user = AuthModule.getCurrentUser();
-        const rank = user ? UIHelperModule.getUserRank(user.totalSpent) : StorageModule.RANK_TIERS[0];
+        const rank = user ? UIHelperModule.getUserRank(user.totalSpent, user.rankOverride) : StorageModule.RANK_TIERS[0];
 
         if (this.items.length === 0) {
           listEl.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Giỏ hàng đang trống. Hãy chọn dịch vụ bạn muốn mua nhé!</div>`;
@@ -2080,7 +2089,7 @@
           if (!supabaseClient || String(user.id).startsWith('local_')) {
             UIHelperModule.toast('Thanh toán đã khóa khi chưa kết nối Supabase an toàn. Vui lòng thử lại sau.', 'error');
             return;
-            const rank = UIHelperModule.getUserRank(user.totalSpent);
+            const rank = UIHelperModule.getUserRank(user.totalSpent, user.rankOverride);
             let total = 0;
             this.items.forEach(i => {
               const line = i.price * i.qty;
@@ -2644,7 +2653,7 @@
                 curUser.totalSpent = u.totalSpent;
                 localStorage.removeItem('spn_local_session');
                 const oldRank = UIHelperModule.getUserRank(oldSpent);
-                const newRank = UIHelperModule.getUserRank(u.totalSpent);
+                const newRank = UIHelperModule.getUserRank(u.totalSpent, u.rankOverride);
                 if (newRank.minSpent > oldRank.minSpent) {
                   UIHelperModule.triggerRankUpCelebration(oldRank, newRank);
                 }
@@ -2772,25 +2781,62 @@
 
       renderTopupsAdmin(area) {
         const topups = StorageModule.getTopups();
-        if (topups.length === 0) {
-          area.innerHTML = `<div class="text-center py-10 text-xs text-slate-400">Chưa có yêu cầu nạp tiền nào.</div>`;
-          return;
-        }
-        area.innerHTML = topups.map(t => `
-          <div class="p-4 rounded-2xl bg-[#0d0622] border border-purple-700/40 flex flex-wrap items-center justify-between gap-3">
-            <div class="space-y-1">
-              <div class="text-xs font-black text-white">${t.id} • <span class="text-purple-300">${t.userName}</span></div>
-              <div class="text-xs text-amber-300">${t.method} — ${t.detail}</div>
-              <div class="text-xs text-slate-400">Mệnh giá: ${UIHelperModule.formatMoney(t.amount)} • Thực nhận: <strong class="text-emerald-400">${UIHelperModule.formatMoney(t.realReceive)}</strong></div>
-            </div>
-            <div class="flex items-center gap-2">
-              ${t.status === 'pending' ? `
-                <button onclick="AdminModule.approveTopup('${t.id}', true)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">✅ Duyệt Cộng Tiền</button>
-                <button onclick="AdminModule.approveTopup('${t.id}', false)" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">✕ Từ Chối</button>
-              ` : `<span class="px-3 py-1 rounded-xl bg-white/10 text-xs font-bold uppercase">${t.status}</span>`}
-            </div>
+        const processedCount = topups.filter(t => ['approved', 'rejected'].includes(String(t.status).toLowerCase())).length;
+        area.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3 p-3 rounded-xl bg-[#150c30] border border-amber-500/30">
+            <div class="text-xs text-slate-300">Lịch sử đã xử lý: <strong class="text-amber-300">${processedCount}</strong> • Chỉ xóa approved/rejected, không ảnh hưởng số dư.</div>
+            <button onclick="AdminModule.clearProcessedTopups()" ${processedCount ? '' : 'disabled'} class="px-3 py-2 rounded-xl text-xs font-bold ${processedCount ? 'bg-rose-700 hover:bg-rose-600 text-white' : 'bg-slate-700 text-slate-400 cursor-not-allowed'}">🧹 Dọn lịch sử đã xử lý</button>
           </div>
-        `).join('');
+          ${topups.length ? topups.map(t => `
+            <div class="p-4 mb-3 rounded-2xl bg-[#0d0622] border border-purple-700/40 flex flex-wrap items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="text-xs font-black text-white">${t.id} • <span class="text-purple-300">${t.userName}</span></div>
+                <div class="text-xs text-amber-300">${t.method} — ${t.detail}</div>
+                <div class="text-xs text-slate-400">Mệnh giá: ${UIHelperModule.formatMoney(t.amount)} • Thực nhận: <strong class="text-emerald-400">${UIHelperModule.formatMoney(t.realReceive)}</strong></div>
+                <div class="text-[11px] text-slate-500">${t.createdAt || ''}</div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                ${t.status === 'pending' ? `
+                  <button onclick="AdminModule.approveTopup('${t.id}', true)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">✅ Duyệt Cộng Tiền</button>
+                  <button onclick="AdminModule.approveTopup('${t.id}', false)" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">✕ Từ Chối</button>
+                ` : `
+                  <span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold uppercase">${t.status}</span>
+                  <button onclick="AdminModule.deleteProcessedTopup('${String(t.id).replace(/'/g, '&#39;')}')" class="px-3 py-1.5 rounded-xl bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold">🗑 Xóa lịch sử</button>
+                `}
+              </div>
+            </div>
+          `).join('') : `<div class="text-center py-10 text-xs text-slate-400">Chưa có yêu cầu nạp tiền nào.</div>`}
+        `;
+      },
+
+      async deleteProcessedTopup(topupId) {
+        if (!confirm('Xóa lịch sử nạp đã xử lý này? Số dư thành viên không thay đổi.')) return;
+        if (!supabaseClient) { UIHelperModule.toast('Cần kết nối Supabase để xóa lịch sử.', 'error'); return; }
+        try {
+          const { error } = await supabaseClient.rpc('rpc_admin_delete_processed_topup', { p_topup_id: String(topupId) });
+          if (error) throw error;
+          await StorageModule.refreshTopups();
+          this.switchTab('topups');
+          UIHelperModule.toast('Đã xóa lịch sử nạp.', 'success');
+        } catch (e) {
+          UIHelperModule.toast('Không xóa được lịch sử: ' + (e.message || e), 'error');
+        }
+      },
+
+      async clearProcessedTopups() {
+        const count = StorageModule.getTopups().filter(t => ['approved', 'rejected'].includes(String(t.status).toLowerCase())).length;
+        if (!count) return;
+        if (!confirm(`Bạn chắc chắn muốn xóa toàn bộ ${count} lịch sử đã duyệt/từ chối? Yêu cầu đang chờ và số dư sẽ được giữ nguyên.`)) return;
+        if (!supabaseClient) { UIHelperModule.toast('Cần kết nối Supabase để dọn lịch sử.', 'error'); return; }
+        try {
+          const { data, error } = await supabaseClient.rpc('rpc_admin_clear_processed_topups');
+          if (error) throw error;
+          await StorageModule.refreshTopups();
+          this.switchTab('topups');
+          UIHelperModule.toast(`Đã dọn ${Number(data?.deleted_count) || 0} lịch sử nạp đã xử lý.`, 'success');
+        } catch (e) {
+          UIHelperModule.toast('Không dọn được lịch sử: ' + (e.message || e), 'error');
+        }
       },
 
       async approveTopup(topupId, isApprove) {
@@ -3054,7 +3100,7 @@
 
           <div class="space-y-2.5">
             ${filtered.map(u => {
-              const rank = UIHelperModule.getUserRank(u.totalSpent);
+              const rank = UIHelperModule.getUserRank(u.totalSpent, u.rankOverride);
               const isAdmin = u.role === 'admin';
               return `
                 <div class="p-3.5 rounded-2xl bg-[#0d0622] border ${u.banned ? 'border-rose-500/60 bg-rose-950/20' : 'border-purple-800/40'} flex flex-wrap items-center justify-between gap-3 text-xs">
@@ -3068,10 +3114,16 @@
                     <div class="text-slate-400">TK: <span class="text-slate-200">${u.email}</span> • Ví: <strong class="text-emerald-400">${UIHelperModule.formatMoney(u.balance)}</strong> • Đã tiêu: ${UIHelperModule.formatMoney(u.totalSpent)}</div>
                   </div>
                   ${!isAdmin ? `
-                    <button onclick="AdminModule.toggleBanUser('${u.id}')" class="px-3 py-1.5 rounded-xl font-bold text-xs ${u.banned ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}">
-                      ${u.banned ? '🔓 Mở Ban Acc' : '🚫 Ban Acc'}
-                    </button>
-                    <button onclick="AdminModule.deleteUser('${u.id}', '${String(u.email || '').replace(/'/g, '&#39;')}')" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-red-900 hover:bg-red-700 text-white">🗑 Xóa acc</button>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <select id="rank-select-${u.id}" class="bg-[#1b1040] border border-amber-500/40 rounded-lg px-2 py-1.5 text-xs text-white" aria-label="Chọn hạng VIP">
+                        ${StorageModule.RANK_TIERS.filter(t => StorageModule.RANK_TIERS.findIndex(x => x.id === t.id) >= StorageModule.RANK_TIERS.findIndex(x => x.id === rank.id)).map(t => `<option value="${t.id}" ${((u.rankOverride || rank.id) === t.id) ? 'selected' : ''}>${t.name} (-${t.discount}%)</option>`).join('')}
+                      </select>
+                      <button onclick="AdminModule.setUserRank('${u.id}')" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950">👑 Cấp hạng</button>
+                      <button onclick="AdminModule.toggleBanUser('${u.id}')" class="px-3 py-1.5 rounded-xl font-bold text-xs ${u.banned ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-rose-600 hover:bg-rose-500 text-white'}">
+                        ${u.banned ? '🔓 Mở Ban Acc' : '🚫 Ban Acc'}
+                      </button>
+                      <button onclick="AdminModule.deleteUser('${u.id}', '${String(u.email || '').replace(/'/g, '&#39;')}')" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-red-900 hover:bg-red-700 text-white">🗑 Xóa acc</button>
+                    </div>
                   ` : ''}
                 </div>
               `;
@@ -3087,6 +3139,31 @@
         this.renderUsersAdmin(document.getElementById('admin-content-area'));
         const nextInput = document.querySelector('#admin-content-area input[oninput*="searchUsers"]');
         if (nextInput) { nextInput.focus(); try { nextInput.setSelectionRange(caret, caret); } catch (_) {} }
+      },
+
+      async setUserRank(userId) {
+        const current = AuthModule.getCurrentUser();
+        if (!current || current.role !== 'admin') { UIHelperModule.toast('Chỉ Admin mới được cấp hạng VIP.', 'error'); return; }
+        const select = document.getElementById(`rank-select-${userId}`);
+        const rankId = select?.value;
+        if (!rankId || !StorageModule.RANK_TIERS.some(t => t.id === rankId)) return;
+        try {
+          if (!supabaseClient || String(userId).startsWith('local_')) {
+            const users = JSON.parse(localStorage.getItem('spn_local_users') || '[]');
+            const target = users.find(u => String(u.id) === String(userId));
+            if (!target) throw new Error('Không tìm thấy tài khoản.');
+            target.vip_rank_override = rankId;
+            localStorage.setItem('spn_local_users', JSON.stringify(users));
+          } else {
+            const { error } = await supabaseClient.rpc('rpc_admin_set_user_rank', { p_target_user_id: userId, p_rank_id: rankId });
+            if (error) throw error;
+          }
+          await StorageModule.refreshAllUsers();
+          UIHelperModule.toast('Đã cấp hạng VIP cho thành viên.', 'success');
+          this.switchTab('users');
+        } catch (e) {
+          UIHelperModule.toast('Không cấp được hạng VIP: ' + (e.message || e), 'error');
+        }
       },
 
       async toggleBanUser(userId) {
