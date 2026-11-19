@@ -200,9 +200,6 @@
         <a href="#services" class="hover:text-white transition">Cửa Hàng</a>
         <button onclick="UIHelperModule.openTopupModal('qr')" class="hover:text-white transition">Nạp Tiền</button>
         <button onclick="OrderModule.openOrdersModal()" class="hover:text-white transition">Đơn Hàng</button>
-        <button onclick="UIHelperModule.openRankModal()" class="hover:text-amber-300 text-amber-400/90 transition flex items-center gap-1">
-          <span>👑 Cấp Bậc VIP</span>
-        </button>
         <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="text-sky-400 hover:text-sky-300 transition flex items-center gap-1 font-semibold">
           <span>💬 Hỗ Trợ Zalo</span>
         </a>
@@ -300,9 +297,6 @@
             </a>
             <button onclick="UIHelperModule.openTopupModal('qr')" class="px-6 py-3.5 rounded-2xl bg-[#22134a] hover:bg-[#2c195e] border border-purple-500/40 text-purple-100 font-bold text-sm transition flex items-center gap-2">
               <span>💳 Nạp Số Dư Nhanh</span>
-            </button>
-            <button onclick="UIHelperModule.openRankModal()" class="px-6 py-3.5 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/50 text-amber-200 font-bold text-sm transition flex items-center gap-2">
-              <span>👑 Nâng Hạng VIP</span>
             </button>
             <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="px-5 py-3.5 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 font-bold text-sm transition flex items-center gap-2">
               <span>🎧 Zalo Chủ Shop: 0395033213</span>
@@ -563,9 +557,16 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2 bg-[#0c061f] p-1 rounded-2xl">
-        <button id="topup-tab-qr" onclick="TopupModule.switchTab('qr')" class="py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white">Chuyển Khoản QR (100%)</button>
-        <button id="topup-tab-card" onclick="TopupModule.switchTab('card')" class="py-2.5 rounded-xl text-xs font-bold text-slate-400">Nạp Thẻ Cào</button>
+        <button id="topup-tab-qr" onclick="TopupModule.switchTab('qr')" aria-label="Nạp bằng ngân hàng hoặc quét mã QR" class="topup-method-tab py-3 px-2 rounded-xl text-xs font-bold bg-purple-600 text-white ring-1 ring-purple-300/50">
+          <span class="block text-base mb-1">🏦 Ngân hàng / QR</span>
+          <span class="block text-[10px] font-semibold opacity-90">Quét mã hoặc chuyển khoản · Nhận 100%</span>
+        </button>
+        <button id="topup-tab-card" onclick="TopupModule.switchTab('card')" aria-label="Nạp bằng thẻ cào điện thoại" class="topup-method-tab py-3 px-2 rounded-xl text-xs font-bold text-slate-400">
+          <span class="block text-base mb-1">🎫 Thẻ cào</span>
+          <span class="block text-[10px] font-semibold opacity-90">Zing · Garena · Viettel · VinaPhone</span>
+        </button>
       </div>
+      <p class="text-[11px] text-slate-400 -mt-2">Chọn đúng hình thức bạn muốn nạp: chuyển khoản ngân hàng/QR hoặc nhập mã thẻ cào.</p>
 
       <!-- Tab QR -->
       <div id="topup-qr-section" class="space-y-4">
@@ -1171,8 +1172,8 @@
         { id: 'vang', name: 'Vàng', minSpent: 1000000, discount: 2, badgeClass: 'bg-amber-400 text-slate-950' },
         { id: 'bachkim', name: 'Bạch Kim', minSpent: 2000000, discount: 3, badgeClass: 'bg-cyan-300 text-slate-950' },
         { id: 'kimcuong', name: 'Kim Cương', minSpent: 3000000, discount: 4, badgeClass: 'bg-indigo-400 text-slate-950' },
-        { id: 'phithang', name: 'Phi Thăng', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
-        { id: 'daide', name: 'Thần Thoại', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
+        { id: 'phithang', name: 'Chí Tôn', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
+        { id: 'daide', name: 'Boss', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
       ],
 
       async syncPublicData() {
@@ -2231,11 +2232,11 @@
         document.getElementById('topup-qr-section').classList.toggle('hidden', !isQr);
         document.getElementById('topup-card-section').classList.toggle('hidden', isQr);
         document.getElementById('topup-tab-qr').className = isQr
-          ? 'py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white'
-          : 'py-2.5 rounded-xl text-xs font-bold text-slate-400';
+          ? 'topup-method-tab py-3 px-2 rounded-xl text-xs font-bold bg-purple-600 text-white ring-1 ring-purple-300/50'
+          : 'topup-method-tab py-3 px-2 rounded-xl text-xs font-bold text-slate-400';
         document.getElementById('topup-tab-card').className = !isQr
-          ? 'py-2.5 rounded-xl text-xs font-bold bg-purple-600 text-white'
-          : 'py-2.5 rounded-xl text-xs font-bold text-slate-400';
+          ? 'topup-method-tab py-3 px-2 rounded-xl text-xs font-bold bg-purple-600 text-white ring-1 ring-purple-300/50'
+          : 'topup-method-tab py-3 px-2 rounded-xl text-xs font-bold text-slate-400';
       },
 
       formatInput(el) {
