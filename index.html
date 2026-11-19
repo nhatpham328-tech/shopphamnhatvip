@@ -565,23 +565,25 @@
         <button onclick="UIHelperModule.closeModal('topup-modal')" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300">✕</button>
       </div>
 
-      <div class="rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-900/40 to-indigo-900/30 p-3.5 space-y-1">
-        <div class="text-sm font-extrabold text-white">👇 Chọn đúng cách nạp bạn muốn dùng</div>
-        <p class="text-xs leading-relaxed text-slate-300">Bạn có 2 cách nạp tiền: <strong class="text-emerald-300">Ngân hàng / Ví QR</strong> hoặc <strong class="text-amber-300">Thẻ cào điện thoại</strong>. Chạm vào một ô bên dưới để mở hướng dẫn tương ứng.</p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2 bg-[#0c061f] p-1 rounded-2xl">
-        <button id="topup-tab-qr" onclick="TopupModule.switchTab('qr')" class="py-3 px-2 rounded-xl text-xs font-extrabold bg-purple-600 text-white">🏦 Ngân hàng / QR</button>
-        <button id="topup-tab-card" onclick="TopupModule.switchTab('card')" class="py-3 px-2 rounded-xl text-xs font-extrabold text-slate-400">📱 Thẻ cào điện thoại</button>
+      <div class="space-y-2">
+        <div class="text-sm font-extrabold text-white">Chọn cách nạp tiền</div>
+        <div class="grid grid-cols-2 gap-2 bg-[#0c061f] p-1.5 rounded-2xl">
+          <button id="topup-tab-qr" onclick="TopupModule.switchTab('qr')" class="min-h-[88px] px-2.5 py-3 rounded-xl text-xs font-bold bg-purple-600 text-white border border-purple-300/40 shadow-lg shadow-purple-900/30 text-center">
+            <span class="block text-2xl mb-1" aria-hidden="true">🏦</span>
+            <span class="block text-sm font-black">Ngân hàng / QR</span>
+            <span class="block mt-1 text-[10px] leading-tight opacity-90">Quét mã hoặc chuyển khoản • Nhận 100%</span>
+          </button>
+          <button id="topup-tab-card" onclick="TopupModule.switchTab('card')" class="min-h-[88px] px-2.5 py-3 rounded-xl text-xs font-bold text-slate-300 border border-purple-800/50 bg-[#160d33] text-center">
+            <span class="block text-2xl mb-1" aria-hidden="true">🎫</span>
+            <span class="block text-sm font-black">Thẻ cào</span>
+            <span class="block mt-1 text-[10px] leading-tight opacity-80">Zing, Garena, Viettel, Vinaphone</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">💡 Chọn <strong class="text-purple-200">Ngân hàng / QR</strong> nếu bạn muốn chuyển khoản. Chọn <strong class="text-purple-200">Thẻ cào</strong> nếu bạn có mã thẻ điện thoại hoặc thẻ game.</p>
       </div>
 
       <!-- Tab QR -->
       <div id="topup-qr-section" class="space-y-4">
-        <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-          <div class="font-extrabold text-emerald-300 text-sm">🏦 CÁCH 1: NẠP BẰNG NGÂN HÀNG / VÍ ĐIỆN TỬ</div>
-          <p class="text-xs text-slate-300 mt-1 leading-relaxed">Chọn ô này nếu bạn chuyển khoản từ app ngân hàng hoặc ví hỗ trợ quét VietQR. Quét mã QR, nhập số tiền chuyển và giữ nguyên nội dung chuyển khoản hiển thị bên dưới.</p>
-          <div class="text-[11px] text-emerald-200 mt-2 font-bold">✓ Không phải nhập Serial hoặc mã thẻ cào.</div>
-        </div>
         <div class="bg-[#0d0622] border border-purple-700/40 rounded-2xl p-4 text-center space-y-3">
           <img id="topup-qr-image" src="https://img.vietqr.io/image/MB-0395033213-compact2.png?accountName=PHAM%20MINH%20NHAT" alt="Mã QR Nạp Tiền" onerror="this.src='https://placehold.co/260x260/1e1b4b/e9d5ff?text=QR+MOMO+0395033213'" class="w-48 h-48 mx-auto rounded-2xl object-contain bg-white p-2" />
           <div class="text-xs text-slate-300 space-y-1">
@@ -592,21 +594,16 @@
         </div>
 
         <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-300">Số tiền bạn đã chuyển khoản (VNĐ)</label>
+          <label class="text-xs font-semibold text-slate-300">Số tiền bạn đã chuyển (VNĐ)</label>
           <input id="qr-amount-input" type="text" inputmode="numeric" oninput="TopupModule.formatInput(this)" placeholder="Ví dụ: 100.000" class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm font-bold text-white" />
         </div>
         <button id="qr-submit-btn" onclick="TopupModule.submitQR()" class="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm">
-          📩 Gửi xác nhận chuyển khoản
+          📩 Xác Nhận Đã Chuyển Khoản
         </button>
       </div>
 
       <!-- Tab Thẻ Cào -->
       <div id="topup-card-section" class="hidden space-y-4">
-        <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-          <div class="font-extrabold text-amber-300 text-sm">📱 CÁCH 2: NẠP BẰNG THẺ CÀO</div>
-          <p class="text-xs text-slate-300 mt-1 leading-relaxed">Chọn ô này nếu bạn đã mua thẻ cào Zing, Garena, Viettel hoặc Vinaphone. Chọn đúng nhà mạng và mệnh giá, sau đó nhập Serial cùng mã thẻ.</p>
-          <div class="text-[11px] text-amber-200 mt-2 font-bold">⚠️ Thẻ cào có phí chiết khấu; số tiền thực nhận sẽ hiển thị trước khi gửi.</div>
-        </div>
         <div id="card-fee-board" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs"></div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -628,8 +625,8 @@
         </div>
 
         <div class="space-y-2">
-          <input id="card-serial-input" type="text" placeholder="Nhập số Serial trên thẻ cào..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
-          <input id="card-code-input" type="text" placeholder="Nhập mã PIN / mã thẻ cào..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          <input id="card-serial-input" type="text" placeholder="Nhập số Serial thẻ..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
+          <input id="card-code-input" type="text" placeholder="Nhập mã thẻ cào..." class="w-full bg-[#0d0622] border border-purple-700/50 rounded-xl px-3.5 py-2.5 text-sm text-white" />
         </div>
 
         <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2.5 flex items-center justify-between text-xs">
@@ -640,7 +637,6 @@
         <button id="card-submit-btn" onclick="TopupModule.submitCard()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm">
           🚀 Gửi Thẻ Cào Xét Duyệt
         </button>
-        <p class="text-[11px] text-center text-slate-400">Thẻ sẽ được gửi để Admin kiểm tra; ví chỉ được cộng tiền sau khi thẻ hợp lệ và được duyệt.</p>
       </div>
 
       <!-- Lịch sử nạp tiền gần đây của tài khoản -->
@@ -1190,8 +1186,8 @@
         { id: 'vang', name: 'Vàng', minSpent: 1000000, discount: 2, badgeClass: 'bg-amber-400 text-slate-950' },
         { id: 'bachkim', name: 'Bạch Kim', minSpent: 2000000, discount: 3, badgeClass: 'bg-cyan-300 text-slate-950' },
         { id: 'kimcuong', name: 'Kim Cương', minSpent: 3000000, discount: 4, badgeClass: 'bg-indigo-400 text-slate-950' },
-        { id: 'phithang', name: 'Phi Thăng', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
-        { id: 'daide', name: 'Đại Đế', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
+        { id: 'phithang', name: 'Chí Tôn', minSpent: 5000000, discount: 5, badgeClass: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' },
+        { id: 'daide', name: 'Boss', minSpent: 10000000, discount: 6, badgeClass: 'bg-gradient-to-r from-red-600 via-amber-500 to-yellow-400 text-slate-950 font-black' }
       ],
 
       async syncPublicData() {
