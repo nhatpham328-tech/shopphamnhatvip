@@ -332,6 +332,11 @@
               </div>
             </div>
 
+            <div class="grid grid-cols-2 gap-3">
+              <button type="button" onclick="CatalogModule.setCategory('coin'); document.getElementById('dynamic-exchange-panel')?.scrollIntoView({behavior:'smooth',block:'center'});" class="rounded-xl px-3 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/10 border border-amber-400/40 text-amber-200 text-xs sm:text-sm font-extrabold hover:from-amber-500/30 transition">🪙 Mua Coin</button>
+              <button type="button" onclick="CatalogModule.setCategory('robux'); document.getElementById('dynamic-exchange-panel')?.scrollIntoView({behavior:'smooth',block:'center'});" class="rounded-xl px-3 py-2.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-cyan-400/40 text-cyan-200 text-xs sm:text-sm font-extrabold hover:from-cyan-500/30 transition">💎 Mua Robux</button>
+            </div>
+
             <div class="rounded-xl bg-emerald-500/10 border border-emerald-500/25 px-3.5 py-2.5 text-xs text-emerald-300 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
               <span>Hỗ trợ giao dịch trực tiếp &amp; Chat riêng từng đơn hàng</span>
@@ -345,29 +350,18 @@
     <!-- KHU VỰC DANH MỤC & DỊCH VỤ                                -->
     <!-- ========================================================= -->
     <section id="services" class="space-y-6">
-      <div class="flex flex-wrap items-center gap-2.5">
-        <button onclick="CatalogModule.setCategory('all')" data-cat="all" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-purple-600 text-white shadow-md shadow-purple-600/30 transition flex items-center gap-2">
-          <span>🎛️ Tất Cả Dịch Vụ</span>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <button onclick="CatalogModule.setCategory('dragon')" data-cat="dragon" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
+          <span>🐉 Mua Dragon</span>
         </button>
-        <button onclick="CatalogModule.setCategory('dragon')" data-cat="dragon" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
-          <span>🐉 Rồng Hiếm</span>
+        <button onclick="CatalogModule.setCategory('coin')" data-cat="coin" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
+          <span>🪙 Mua Coin</span>
         </button>
-        <button onclick="CatalogModule.setCategory('coin')" data-cat="coin" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" fill="#F59E0B"/>
-            <circle cx="12" cy="12" r="7.5" fill="#FBBF24" stroke="#FEF08A" stroke-width="1.2"/>
-            <path d="M12 7.5v9M9.5 10c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" stroke="#92400E" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          <span>Quy Đổi Coin</span>
+        <button onclick="CatalogModule.setCategory('robux')" data-cat="robux" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
+          <span>💎 Mua Robux</span>
         </button>
-        <button onclick="CatalogModule.setCategory('robux')" data-cat="robux" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
-          <svg class="w-4 h-4 text-amber-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2ZM12 4.3L5.34 8.15V15.85L12 19.7L18.66 15.85V8.15L12 4.3ZM9.5 9.5H14.5V14.5H9.5V9.5Z"/>
-          </svg>
-          <span>Quy Đổi Robux</span>
-        </button>
-        <button onclick="CatalogModule.setCategory('pot')" data-cat="pot" class="cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2">
-          <span>🧪 Pot &amp; Vật Phẩm</span>
+        <button onclick="CatalogModule.setCategory('pot')" data-cat="pot" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
+          <span>🧪 Mua Pot</span>
         </button>
       </div>
 
@@ -1745,8 +1739,8 @@
         document.querySelectorAll('.cat-btn').forEach(btn => {
           const active = btn.dataset.cat === cat;
           btn.className = active
-            ? 'cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-purple-600 text-white shadow-md shadow-purple-600/30 transition flex items-center gap-2'
-            : 'cat-btn px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center gap-2';
+            ? 'cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-purple-600 text-white shadow-md shadow-purple-600/30 transition flex items-center justify-center gap-2'
+            : 'cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2';
         });
 
         const exchangePanel = document.getElementById('dynamic-exchange-panel');
@@ -1770,7 +1764,7 @@
 
         document.getElementById('exchange-title').textContent = isCoin
           ? 'Quy Đổi Coin Dragon Adventures'
-          : 'Quy Đổi Robux Chính Hãng';
+          : 'Quy Đổi Robux Quốc Tế';
 
         document.getElementById('exchange-subtitle').textContent = isCoin
           ? `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(settings.coinPer10k)} Coin`
