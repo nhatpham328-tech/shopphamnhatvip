@@ -648,14 +648,13 @@
         <div id="user-orders-list" class="md:col-span-5 overflow-y-auto space-y-2.5 pr-1 max-h-[60vh]"></div>
         <div class="md:col-span-7 bg-[#0d0622] border border-purple-700/40 rounded-2xl p-5 flex flex-col justify-center min-h-[260px]">
           <div class="text-center space-y-3">
-            <div class="text-4xl">💬</div>
+            <div class="text-4xl">📦</div>
             <h4 id="chat-order-header" class="text-lg font-black text-white">Chọn một đơn hàng</h4>
-            <p class="text-sm text-slate-300">Cần hỗ trợ đơn hàng? Bạn hãy nhắn trực tiếp Shop qua Zalo hoặc Messenger để được hỗ trợ nhanh hơn nhé!</p>
+            <div id="chat-order-panel" class="space-y-3"><p class="text-sm text-slate-300">Chọn đơn hàng bên trái để xem hướng dẫn.</p></div>
             <div class="flex flex-wrap justify-center gap-3 pt-2">
               <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="px-4 py-3 rounded-xl bg-sky-500/20 border border-sky-400/40 text-sky-300 font-bold">💬 Nhắn Zalo Shop</a>
               <a href="https://m.me/61591895926227" target="_blank" rel="noopener" class="px-4 py-3 rounded-xl bg-[#00B2FF]/15 border border-[#00B2FF]/40 text-[#39c5ff] font-bold inline-flex items-center gap-2"><svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4 fill-current"><path d="M12 2C6.48 2 2 6.18 2 11.34c0 2.94 1.47 5.56 3.77 7.28V22l3.45-1.9c.9.25 1.83.38 2.78.38 5.52 0 10-4.18 10-9.34S17.52 2 12 2Zm1.08 12.58-2.55-2.72-4.98 2.72 5.48-5.82 2.62 2.72 4.91-2.72-5.48 5.82Z"/></svg>Messenger</a>
             </div>
-            <p class="text-[11px] text-slate-500">Khi nhắn tin, bạn vui lòng gửi mã đơn hàng để Shop kiểm tra nhanh hơn.</p>
           </div>
         </div>
       </div>
@@ -2438,7 +2437,7 @@
                 <span class="text-white">${o.id}</span>
                 <span class="px-2 py-0.5 rounded-full text-[10px] ${st.cls}">${st.text}</span>
               </div>
-              <div class="text-[11px] text-slate-300 mt-1 line-clamp-1">${o.items.map(i => i.name).join(', ')}</div>
+              <div class="text-[11px] text-slate-300 mt-1 line-clamp-1">${o.items.map(i => i.category === 'dragon' ? `${this.getDragonOrderCode(i)} (x${i.qty})` : `${i.name} (x${i.qty})`).join(', ')}</div>
               <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
                 <span>Ingame: <strong class="text-purple-300">${o.robloxUser}</strong></span>
                 <span class="font-bold text-emerald-400">${UIHelperModule.formatMoney(o.totalPaid)}</span>
@@ -2454,49 +2453,52 @@
         this.renderChatBox();
       },
 
-      renderChatBox() {
-        const header = document.getElementById('chat-order-header');
-        if (!this.activeOrderId) { header.textContent = 'Chọn một đơn hàng để được hỗ trợ'; return; }
-        const order = StorageModule.getOrders().find(o => o.id === this.activeOrderId);
-        if (!order) return;
-        header.textContent = `Bạn cần hỗ trợ đơn ${order.id} (${order.robloxUser})?`;
+      getDragonOrderCode(item) {
+        let code = String(item.dragonCode || '').trim();
+        if (!/^#\d+$/.test(code)) {
+          const product = StorageModule.getProducts().find(p => String(p.id) === String(item.id));
+          const candidate = String(product?.dragonCode || product?.badge || '').trim();
+          if (/^#\d+$/.test(candidate)) code = candidate;
+        }
+        return code || 'Chưa có mã';
       },
 
+      renderChatBox() {
+        const panel = document.getElementById('chat-order-panel');
+        const header = document.getElementById('chat-order-header');
+        if (!panel || !header) return;
+        if (!this.activeOrderId) {
+          header.textContent = 'Chọn một đơn hàng để xem hướng dẫn';
+          panel.innerHTML = '<p class="text-sm text-slate-300">Chọn đơn hàng bên trái để xem hướng dẫn nhận Coin hoặc Rồng.</p>';
+          return;
+        }
+        const order = StorageModule.getOrders().find(o => String(o.id) === String(this.activeOrderId));
+        if (!order) return;
+        const isCoin = (order.items || []).some(i => i.category === 'coin');
+        const imageUrl = isCoin
+          ? 'https://i.postimg.cc/g0bsW91z/Buying-ery-dbl-12m-coin.jpg'
+          : 'https://i.postimg.cc/tgGkj08H/Cach-trade-khi-giao-dich.jpg';
+        const dragonCodes = (order.items || []).filter(i => i.category === 'dragon').map(i => `${this.getDragonOrderCode(i)} (x${i.qty})`).join(', ');
+        const message = isCoin
+          ? 'Đây là tin nhắn tự động quy trình mua coin bên mình\nUser shop là: thanhtuss27\nKhi nào bạn nhận được lời mời kết bạn, bạn hãy join theo shop hay vào khu Trade trước nhé, shop sẽ done ngay.\nXin cảm ơn!\nHoặc bạn có thể nhắn done ngay tại Messenger và Zalo.'
+          : `Đây là tin nhắn tự động quy trình mua rồng bên mình\nMã Rồng của bạn: ${dragonCodes || 'Chưa có mã'}\nUser shop là: thanhtuss27\nKhi nào bạn nhận được lời mời kết bạn, bạn hãy join theo shop hay vào game trước nhé, shop sẽ done ngay.\nXin cảm ơn!\nHoặc bạn có thể nhắn done ngay tại Messenger và Zalo.`;
+        header.textContent = `Hướng dẫn đơn ${order.id}`;
+        panel.innerHTML = `
+          <div class="text-left rounded-xl bg-purple-950/40 p-4 space-y-3">
+            ${!isCoin ? `<div class="text-sm font-bold text-amber-300">Mã Rồng: ${dragonCodes || 'Chưa có mã'}</div>` : ''}
+            <p class="text-sm text-slate-200 whitespace-pre-line">${message}</p>
+            <div class="text-xs font-bold text-purple-200">Ảnh hướng dẫn ${isCoin ? 'mua Coin' : 'giao dịch Rồng'}</div>
+            <a href="${imageUrl}" target="_blank" rel="noopener" class="block">
+              <img src="${imageUrl}" alt="Ảnh hướng dẫn ${isCoin ? 'mua Coin' : 'giao dịch Rồng'}" loading="lazy" class="w-full max-h-[420px] object-contain rounded-xl border border-purple-500/40 bg-black/20" onerror="this.outerHTML='<p class=\'text-xs text-rose-300\'>Không tải được ảnh hướng dẫn. Bạn có thể mở ảnh qua liên kết bên dưới.</p>'">
+            </a>
+            <a href="${imageUrl}" target="_blank" rel="noopener" class="inline-block text-xs text-cyan-300 underline">Mở ảnh hướng dẫn ở tab mới</a>
+          </div>
+          <p class="text-[11px] text-slate-500">Nếu cần hỗ trợ, bạn nhắn Shop qua Zalo hoặc Messenger và gửi mã đơn hàng.</p>
+        `;
+      },
       async sendChatMessage(e) {
-        e.preventDefault();
-        if (!this.activeOrderId) return;
-        const user = AuthModule.getCurrentUser();
-        if (!user) return;
-        const input = document.getElementById('order-chat-input');
-        const text = input.value.trim();
-        if (!text) return;
-
-        input.value = '';
-        if (!supabaseClient || String(user.id).startsWith('local_')) {
-          const orders = JSON.parse(localStorage.getItem('spn_local_orders') || '[]');
-          const o = orders.find(x => x.id === this.activeOrderId);
-          if (o) {
-            o.messages = o.messages || [];
-            o.messages.push({ sender: 'user', text, time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) });
-            localStorage.setItem('spn_local_orders', JSON.stringify(orders));
-          }
-          await StorageModule.refreshOrders();
-          this.renderChatBox();
-          return;
-        }
-
-        const { error } = await supabaseClient.from('order_messages').insert({
-          order_id: this.activeOrderId,
-          sender_id: user.id,
-          sender_type: 'user',
-          text
-        });
-        if (error) {
-          UIHelperModule.toast(error.message, 'error');
-          return;
-        }
-        await StorageModule.refreshOrders();
-        this.renderChatBox();
+        if (e) e.preventDefault();
+        UIHelperModule.toast('Vui lòng nhắn Shop qua Zalo hoặc Messenger để được hỗ trợ.', 'info');
       }
     };
 
@@ -2560,9 +2562,9 @@
           UIHelperModule.toast(successMessage, 'success');
         } catch (e) { UIHelperModule.toast('Không sao chép được. Vui lòng thử lại.', 'error'); }
       },
-      copyOrderCustomerName(orderId) {
+      copyOrderRobloxUser(orderId) {
         const o = StorageModule.getOrders().find(x => String(x.id) === String(orderId));
-        if (o) this.copyOrderText(String(o.userName || ''), 'Đã sao chép tên khách hàng.');
+        if (o) this.copyOrderText(String(o.robloxUser || '').trim(), 'Đã sao chép Roblox username để kết bạn trong game.');
       },
       getOrderGuideType(order) {
         return (order.items || []).some(i => i.category === 'coin') ? 'coin' : 'dragon';
@@ -2624,12 +2626,10 @@
             </div>
             <div class="text-xs text-slate-300">Sản phẩm: ${o.items.map(i => this.getOrderItemLabel(i)).join(', ')}</div>
             <div class="flex flex-wrap gap-2 rounded-xl bg-purple-950/40 border border-purple-700/30 p-3">
-              <button onclick="AdminModule.copyOrderCustomerName('${o.id}')" class="px-3 py-2 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs font-bold">📋 Sao chép tên khách</button>
-              <button onclick="AdminModule.copyOrderTemplate('${o.id}')" class="px-3 py-2 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-bold">✉️ Sao chép tin nhắn tự động</button>
-              <button onclick="AdminModule.openOrderGuide('${o.id}')" class="px-3 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500 text-white text-xs font-bold">🖼️ Mở ảnh hướng dẫn ${this.getOrderGuideType(o) === 'coin' ? 'coin' : 'rồng'}</button>
+              <button onclick="AdminModule.copyOrderRobloxUser('${o.id}')" class="px-3 py-2 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs font-bold">📋 Sao chép User Game để kết bạn</button>
             </div>
 
-            <div class="text-[11px] text-slate-400">Liên hệ khách trực tiếp qua Zalo/Messenger theo thông tin khách cung cấp; không sử dụng chat nội bộ trên website.</div>
+            <div class="text-[11px] text-slate-400">Sao chép đúng Roblox username khách đã nhập khi đặt hàng để tìm và kết bạn trong game.</div>
           </div>
         `).join('');
       },
