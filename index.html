@@ -329,10 +329,12 @@
               <div class="min-w-0 rounded-xl bg-[#1a0e3d] border border-purple-700/30 p-2 sm:p-3 text-center">
                 <div class="text-[10px] sm:text-xs text-slate-400">🟩 Robux 1S</div>
                 <div id="hero-robux-rate" class="text-[11px] sm:text-base font-black text-cyan-400 mt-1 break-words">10k = 80 R$</div>
+                <div class="text-[9px] sm:text-[10px] text-slate-400 mt-1">VNG &amp; Quốc tế • Robux 1S</div>
               </div>
               <div class="min-w-0 rounded-xl bg-[#1a0e3d] border border-purple-700/30 p-2 sm:p-3 text-center">
-                <div class="text-[10px] sm:text-xs text-slate-400">🎁 Gift (120H)</div>
+                <div class="text-[10px] sm:text-xs text-slate-400">🎁 Gift Game Pass</div>
                 <div id="hero-robux-gift-rate" class="text-[11px] sm:text-base font-black text-pink-300 mt-1 break-words">10k = 80 R$</div>
+                <div class="text-[9px] sm:text-[10px] text-slate-400 mt-1">Mọi game • Chờ 120H</div>
               </div>
             </div>
 
@@ -365,7 +367,7 @@
           <span>🟩 R$ Robux 1S</span>
         </button>
         <button onclick="CatalogModule.setCategory('robux_gift')" data-cat="robux_gift" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
-          <span>🎁 Gift (120H)</span>
+          <span>🎁 Gift Game Pass mọi game (120H)</span>
         </button>
         <button onclick="CatalogModule.setCategory('acc_robux')" data-cat="acc_robux" class="cat-btn min-w-0 px-3 py-3 rounded-2xl text-xs sm:text-sm font-extrabold bg-[#160d33] text-slate-300 border border-purple-700/40 hover:text-white transition flex items-center justify-center gap-2">
           <span>👑 Acc sẵn Robux</span>
@@ -1775,9 +1777,13 @@
           ? `<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#F59E0B"/><circle cx="12" cy="12" r="7.5" fill="#FBBF24" stroke="#FEF08A" stroke-width="1.2"/><path d="M12 7.5v9M9.5 10c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" stroke="#92400E" stroke-width="1.6" stroke-linecap="round"/></svg>`
           : `<span class="w-8 h-8 rounded-lg bg-emerald-500 text-white font-black text-sm flex items-center justify-center shadow">R$</span>`;
 
-        document.getElementById('exchange-title').textContent = isCoin ? 'Quy Đổi Coin Dragon Adventures' : (isGift ? 'Robux Gift (120H)' : 'Robux 1S – VNG & Quốc tế');
+        document.getElementById('exchange-title').textContent = isCoin ? 'Quy Đổi Coin Dragon Adventures' : (isGift ? 'Gift Game Pass mọi game và Robux 120H' : 'Robux 1S – VNG & Quốc tế');
+        const vipNote = document.getElementById('exchange-vip-note');
+        if (vipNote) vipNote.classList.toggle('hidden', !isCoin);
 
-        document.getElementById('exchange-subtitle').textContent = isCoin ? `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(rate)} Coin` : `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(rate)} R$ ${isGift ? '• Dịch vụ Gift (120H)' : '• Nhận Robux nhanh như nạp trực tiếp trên Roblox'}`;
+        document.getElementById('exchange-subtitle').textContent = isCoin
+          ? `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(rate)} Coin`
+          : `Tỷ giá hiện tại: 10.000đ = ${UIHelperModule.formatDots(rate)} R$ ${isGift ? '• Gift Game Pass mọi game • Robux 120H' : '• Robux 1S – VNG & Quốc tế • Nhận Robux nhanh'}`;
 
         document.getElementById('exchange-output-label').textContent = isCoin ? 'Số Coin nhận được' : 'Số Robux nhận được';
         document.getElementById('exchange-unit-badge').textContent = isCoin ? 'COIN' : 'R$ ROBUX';
@@ -1844,7 +1850,7 @@
 
         const item = {
           id: 'ex_' + amount + '_' + (isCoin ? 'coin' : (isGift ? 'robux_gift' : 'robux')),
-          name: isCoin ? `Gói ${UIHelperModule.formatDots(received)} Coin Dragon Adventures` : `Gói ${UIHelperModule.formatDots(received)} R$ ${isGift ? 'Gift (120H)' : 'Robux 1S'}`,
+          name: isCoin ? `Gói ${UIHelperModule.formatDots(received)} Coin Dragon Adventures` : `Gói ${UIHelperModule.formatDots(received)} R$ ${isGift ? 'Gift Game Pass mọi game và Robux 120H' : 'Robux 1S – VNG & Quốc tế'}`,
           category: isCoin ? 'coin' : (isGift ? 'robux_gift' : 'robux'),
           price: amount,
           qty: 1
@@ -1921,7 +1927,9 @@
 
         grid.innerHTML = products.map(p => {
           const catLabel = p.category === 'dragon' ? '🐉 Rồng Hiếm' : (p.category === 'acc_robux' ? '👑 Acc Roblox sẵn Robux' : '🧪 Pot & Vật Phẩm');
-          const discountPct = rank.discount;
+          const normalizedCategory = String(p.category || '').trim().toLowerCase();
+          const isVipExcluded = ['robux', 'robux_gift', 'acc_robux'].includes(normalizedCategory);
+          const discountPct = isVipExcluded ? 0 : rank.discount;
           const discountedPrice = Math.round(p.price * (1 - discountPct / 100));
           const isDaiDe = rank.id === 'daide';
 
@@ -2064,7 +2072,8 @@
         listEl.innerHTML = this.items.map((item, idx) => {
           const lineTotal = item.price * item.qty;
           subtotal += lineTotal;
-          const itemDiscount = ['robux','robux_gift'].includes(item.category) ? 0 : Math.round(lineTotal * (rank.discount / 100));
+          const noVipDiscount = ['robux', 'robux_gift', 'acc_robux'].includes(String(item.category || '').trim().toLowerCase());
+          const itemDiscount = noVipDiscount ? 0 : Math.round(lineTotal * (rank.discount / 100));
           discountTotal += itemDiscount;
 
           return `
@@ -2115,7 +2124,8 @@
             let total = 0;
             this.items.forEach(i => {
               const line = i.price * i.qty;
-              const disc = ['robux','robux_gift'].includes(i.category) ? 0 : Math.round(line * (rank.discount / 100));
+              const noVipDiscount = ['robux', 'robux_gift', 'acc_robux'].includes(String(i.category || '').trim().toLowerCase());
+              const disc = noVipDiscount ? 0 : Math.round(line * (rank.discount / 100));
               total += (line - disc);
             });
             if (user.balance < total) {
@@ -2484,7 +2494,26 @@
         }
         const order = StorageModule.getOrders().find(o => String(o.id) === String(this.activeOrderId));
         if (!order) return;
-        const isCoin = (order.items || []).some(i => i.category === 'coin');
+        const orderItems = order.items || [];
+        const isRobuxOrPot = orderItems.some(i => ['robux', 'robux_gift', 'pot'].includes(String(i.category || '').trim().toLowerCase()));
+        if (isRobuxOrPot) {
+          const hasRobux = orderItems.some(i => ['robux', 'robux_gift'].includes(String(i.category || '').trim().toLowerCase()));
+          const serviceNames = orderItems.map(i => i.name).filter(Boolean).join(', ');
+          header.textContent = `Hướng dẫn đơn ${order.id}`;
+          panel.innerHTML = `
+            <div class="text-left rounded-xl bg-purple-950/40 p-4 space-y-3">
+              <div class="text-sm font-bold text-amber-300">${hasRobux ? 'Dịch vụ Robux' : 'Dịch vụ Pot'}</div>
+              <p class="text-sm text-slate-200">Đơn hàng của bạn: ${serviceNames || 'Dịch vụ đã chọn'}.</p>
+              <p class="text-sm text-slate-200">Vui lòng nhắn Admin qua Messenger hoặc Zalo để được hướng dẫn nhận hàng cụ thể. Shop sẽ bổ sung hướng dẫn tự động sau.</p>
+              <div class="grid grid-cols-2 gap-2 pt-2">
+                <a href="https://zalo.me/0395033213" target="_blank" rel="noopener" class="min-w-0 flex items-center justify-center gap-1.5 px-2 py-3 rounded-xl bg-sky-500/15 border border-sky-400/40 text-sky-300 font-bold text-sm">💬 Nhắn Zalo</a>
+                <a href="https://m.me/61591895926227" target="_blank" rel="noopener" class="min-w-0 flex items-center justify-center gap-1.5 px-2 py-3 rounded-xl bg-[#00B2FF]/15 border border-[#00B2FF]/40 text-[#39c5ff] font-bold text-sm">Nhắn Messenger</a>
+              </div>
+              <p class="text-[11px] text-slate-400">Khi nhắn Shop, vui lòng gửi mã đơn ${order.id} để được hỗ trợ nhanh.</p>
+            </div>`;
+          return;
+        }
+        const isCoin = orderItems.some(i => i.category === 'coin');
         const imageUrl = isCoin
           ? 'https://i.postimg.cc/g0bsW91z/Buying-ery-dbl-12m-coin.jpg'
           : 'https://i.postimg.cc/tgGkj08H/Cach-trade-khi-giao-dich.jpg';
@@ -3292,7 +3321,7 @@ Nhập XOA để xác nhận. Thao tác này không thể hoàn tác.`);
                 <input id="set-robux-rate" type="number" min="1" required value="${s.robuxPer10k}" class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
               </div>
               <div class="space-y-1">
-                <label class="text-xs font-bold text-slate-300">Robux Gift (120H) – số R$ / 10.000đ</label>
+                <label class="text-xs font-bold text-slate-300">Gift Game Pass mọi game và Robux 120H – số R$ / 10.000đ</label>
                 <input id="set-robux-gift-rate" type="number" min="1" required value="${s.robuxGiftPer10k}" class="w-full bg-[#160d33] border border-purple-700/40 rounded-xl px-3 py-2 text-xs text-white" />
               </div>
             </div>
